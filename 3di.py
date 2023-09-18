@@ -89,3 +89,39 @@ class StructureTo3DiBase:
     @staticmethod
     def dot(a, b):
         return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+
+class StructureTo3Di(StructureTo3DiBase):
+
+    @staticmethod
+    def calcVirtualCenter(virtual_center, c_alpha, c_beta, alpha, beta, d):
+        alpha = StructureTo3Di.degreeToRadians(alpha)
+        beta = StructureTo3Di.degreeToRadians(beta)
+        
+        v = StructureTo3DiBase.sub(c_beta, c_alpha)
+        
+        # ângulo normal (entre CA-N e CA-VIRT)
+        a = StructureTo3DiBase.sub(c_beta, c_alpha)
+        b = StructureTo3DiBase.sub(n, c_alpha)
+        k = StructureTo3DiBase.norm(StructureTo3DiBase.cross(a, b))  # eixo de rotação
+        
+        v = StructureTo3DiBase.add(StructureTo3DiBase.add(StructureTo3DiBase.scale(v, cos(alpha)),
+                                StructureTo3DiBase.scale(StructureTo3DiBase.cross(k, v), sin(alpha))),
+                                StructureTo3DiBase.scale(StructureTo3DiBase.scale(k, StructureTo3DiBase.dot(k, v)), 1 - cos(alpha)))
+
+        # ângulo diedro (eixo: CA-N, CO, VIRT)
+        k = StructureTo3DiBase.norm(StructureTo3DiBase.sub(n, c_alpha))
+        v = StructureTo3DiBase.add(StructureTo3DiBase.add(StructureTo3DiBase.scale(v, cos(beta)),
+                                StructureTo3DiBase.scale(StructureTo3DiBase.cross(k, v), sin(beta))),
+                                StructureTo3DiBase.scale(StructureTo3DiBase.scale(k, StructureTo3DiBase.dot(k, v)), 1 - cos(beta)))
+        
+        virtual_center = StructureTo3DiBase.add(c_alpha, StructureTo3DiBase.scale(v, d))
+        return virtual_center
+
+    @staticmethod
+    def calcDistanceBetween(a, b):
+        dx = a[0] - b[0]
+        dy = a[1] - b[1]
+        dz = a[2] - b[2]
+        return (dx**2 + dy**2 + dz**2)**0.5
