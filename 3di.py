@@ -30,6 +30,10 @@ class StructureTo3diSeqDist:
 
     
     def discretizeSeqDistance(self, states, partnerIdx, mask, length):
+        """
+            Esta função parece percorrer cada posição do vetor de entrada, calcular a distância sequencial e então encontrar o centroide mais próximo dessa distância. 
+            Em seguida, ele atribui o estado (que é o índice do centroide mais próximo) à posição atual do vetor de saída states.
+        """
         minDistance = float('inf')
         closestState = Alphabet3diSeqDist.INVALID_STATE
 
@@ -45,6 +49,7 @@ class StructureTo3diSeqDist:
             states[i] = closestState
 
 
+# Esta classe StructureTo3DiBase serve como a base para as operações relacionadas à estrutura 3Di. 
 class StructureTo3DiBase:
 
     # Constantes
@@ -94,8 +99,31 @@ class StructureTo3DiBase:
 
 class StructureTo3Di(StructureTo3DiBase):
 
+
+    @staticmethod
+    def replaceCBWithVirtualCenter(ca, n, c, cb, length):
+        for i in range(length):
+            if cb[i] == [0, 0, 0]:
+                # Compute the direction from CA to CB
+                ca_to_cb = StructureTo3DiBase.sub(n[i], ca[i])
+                ca_to_cb = StructureTo3DiBase.norm(ca_to_cb)
+
+                # Scale the direction
+                ca_to_cb = StructureTo3DiBase.scale(ca_to_cb, StructureTo3DiBase.DISTANCE_ALPHA_BETA)
+
+                # Compute the virtual CB position
+                virtual_cb = StructureTo3DiBase.add(ca[i], ca_to_cb)
+
+                # Set the virtual CB position
+                cb[i] = virtual_cb
+
+    @staticmethod
+    def degreeToRadians(degree):
+        return degree * StructureTo3DiBase.PI / 180.0
+
     @staticmethod
     def calcVirtualCenter(virtual_center, c_alpha, c_beta, alpha, beta, d):
+        """A função calcVirtualCenter usa a fórmula de rotação de Rodrigues para calcular o centro virtual entre os átomos CA e CB."""
         alpha = StructureTo3Di.degreeToRadians(alpha)
         beta = StructureTo3Di.degreeToRadians(beta)
         
@@ -121,6 +149,7 @@ class StructureTo3Di(StructureTo3DiBase):
 
     @staticmethod
     def calcDistanceBetween(a, b):
+        """Para calcular a distância entre dois pontos em um espaço tridimensional."""
         dx = a[0] - b[0]
         dy = a[1] - b[1]
         dz = a[2] - b[2]
