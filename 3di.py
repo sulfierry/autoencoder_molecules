@@ -6,8 +6,6 @@ class Alphabet3diSeqDist:
     centroids = [-284,-147,-83,-52,-33,-21,-13,-7,-4,-3,-1,1,3,7,13,24,40,68,123,250]
 
 
-
-
 class StructureTo3diSeqDist:
     
     def __init__(self):
