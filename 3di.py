@@ -172,3 +172,10 @@ class StructureTo3Di(StructureTo3DiBase):
         virtual_center = StructureTo3DiBase.add(c_alpha, StructureTo3DiBase.scale(v, d))
         return virtual_center
 
+    @staticmethod
+    def calcDistanceBetween(a, b):
+        """Para calcular a distância entre dois pontos em um espaço tridimensional."""
+        dx = a[0] - b[0]
+        dy = a[1] - b[1]
+        dz = a[2] - b[2]
+        return (dx**2 + dy**2 + dz**2)**0.5
