@@ -126,3 +126,76 @@ plt.ylabel('Dimension 2')
 plt.title('2D Representation of 3D Structures')
 plt.grid(True)
 plt.show()
+
+
+
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# Passe as coordenadas 3D originais pelo autoencoder
+encoded_2d = model.encoder(atoms_tensor).detach().numpy()
+reconstructed_3d = model.decoder(torch.tensor(encoded_2d, dtype=torch.float32)).detach().numpy()
+
+# Crie um gráfico 3D para as coordenadas originais e reconstruídas
+fig = plt.figure(figsize=(12, 6))
+
+# Coordenadas 3D originais
+ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+ax1.scatter(atoms_in_grid[:, 0], atoms_in_grid[:, 1], atoms_in_grid[:, 2], c='b', marker='o')
+ax1.set_title('Original 3D Coordinates')
+ax1.set_xlabel('X')
+ax1.set_ylabel('Y')
+ax1.set_zlabel('Z')
+
+# Coordenadas 3D reconstruídas
+ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+ax2.scatter(reconstructed_3d[:, 0], reconstructed_3d[:, 1], reconstructed_3d[:, 2], c='r', marker='o')
+ax2.set_title('Reconstructed 3D Coordinates')
+ax2.set_xlabel('X')
+ax2.set_ylabel('Y')
+ax2.set_zlabel('Z')
+
+plt.show()
+
+
+def rmsd(original, reconstructed):
+    diff = original - reconstructed
+    return np.sqrt(np.mean(np.sum(diff**2, axis=1)))
+
+rms_value = rmsd(atoms_in_grid, reconstructed_3d)
+print(f"RMSD between the original and reconstructed coordinates: {rms_value:.4f} Å")
+
+
+import matplotlib.pyplot as plt
+
+# 1. Histograma de Erros
+errors = np.linalg.norm(atoms_in_grid - reconstructed_3d, axis=1)
+plt.hist(errors, bins=50, alpha=0.75, color='blue')
+plt.xlabel('Erro')
+plt.ylabel('Número de Átomos')
+plt.title('Histograma de Erros de Reconstrução')
+plt.grid(True)
+plt.show()
+
+# 2. Salvar os PDBs
+def save_to_pdb(coords, filename):
+    with open(filename, 'w') as f:
+        for i, coord in enumerate(coords):
+            f.write("ATOM  {:5d}  CA  ALA A{:4d}    {:8.3f}{:8.3f}{:8.3f}  1.00  0.00           C  \n".format(
+                i+1, i+1, coord[0], coord[1], coord[2]))
+        f.write("END\n")
+
+save_to_pdb(atoms_in_grid, 'original.pdb')
+save_to_pdb(reconstructed_3d, 'reconstructed.pdb')
+
+# 3. Análise de Resíduos
+residues = np.linalg.norm(atoms_in_grid - reconstructed_3d, axis=1)
+original_norms = np.linalg.norm(atoms_in_grid, axis=1)
+
+plt.scatter(original_norms, residues, alpha=0.5, color='red')
+plt.xlabel('Magnitude das Coordenadas Originais')
+plt.ylabel('Resíduos')
+plt.title('Análise de Resíduos')
+plt.grid(True)
+plt.show()
