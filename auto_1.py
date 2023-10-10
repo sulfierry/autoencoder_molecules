@@ -51,7 +51,7 @@ class ImprovedAutoencoder(nn.Module):
         x = self.decoder(x)
         return x
 
-atom_coordinates = extract_atom_coordinates("./3c9t.pdb")
+atom_coordinates = extract_atom_coordinates("./5dd7.pdb")
 geometric_center = np.mean(atom_coordinates, axis=0)
 grid_half_size = 7.5
 grid_min = geometric_center - grid_half_size
@@ -110,6 +110,8 @@ for epoch in tqdm(range(num_epochs), desc="Training Epochs"):
 
 plt.plot(train_losses, label="Training Loss")
 plt.plot(val_losses, label="Validation Loss")
+# plt.xlim(2, 8)
+plt.ylim(0, 0.3)
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
@@ -189,13 +191,3 @@ def save_to_pdb(coords, filename):
 save_to_pdb(atoms_in_grid, 'original.pdb')
 save_to_pdb(reconstructed_3d, 'reconstructed.pdb')
 
-# 3. Análise de Resíduos
-residues = np.linalg.norm(atoms_in_grid - reconstructed_3d, axis=1)
-original_norms = np.linalg.norm(atoms_in_grid, axis=1)
-
-plt.scatter(original_norms, residues, alpha=0.5, color='red')
-plt.xlabel('Magnitude das Coordenadas Originais')
-plt.ylabel('Resíduos')
-plt.title('Análise de Resíduos')
-plt.grid(True)
-plt.show()
