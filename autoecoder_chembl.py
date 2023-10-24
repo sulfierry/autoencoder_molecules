@@ -136,3 +136,22 @@ with torch.no_grad():
     _, z_pkidb = model(pkidb_smiles_padded)
     latent_features_pkidb = z_pkidb.numpy()
 
+# Parte 5: Calcular Similaridades e Identificar Moléculas Similares
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Calcular similaridades de cosseno entre as características latentes das moléculas no ChEMBL e no PKIDB
+similarities = cosine_similarity(latent_features_chembl, latent_features_pkidb)
+
+# Identificar as moléculas mais similares
+most_similar_pairs = np.unravel_index(np.argsort(similarities, axis=None), similarities.shape)
+most_similar_pairs = list(zip(*most_similar_pairs))
+
+# Exibir as moléculas mais similares
+for chembl_idx, pkidb_idx in most_similar_pairs[-10:]:
+    chembl_smiles = filtered_df_chembl.iloc[chembl_idx]['canonical_smiles']
+    pkidb_smiles = filtered_df_pkidb.iloc[pkidb_idx]['Canonical_Smiles']
+    similarity_score = similarities[chembl_idx, pkidb_idx]
+    print(f"ChEMBL SMILES: {chembl_smiles}, PKIDB SMILES: {pkidb_smiles}, Similaridade: {similarity_score}")
+
