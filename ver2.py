@@ -211,12 +211,10 @@ class Autoencoder(nn.Module):
 
 
 if __name__ == "__main__":
-    # Certifique-se de que o caminho até os arquivos está correto
-    # chembl_file_path = "path/to/chembl_file.tsv"
-    # pkidb_file_path = "path/to/pkidb_file.tsv"
     chembl_file_path = './molecules_with_bio_activities.tsv'
     pkidb_file_path = './PKIDB/pkidb_2023-06-30.tsv'
+    finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path)
+    top_molecule_indices = finder.run()
+    print("Índices das moléculas mais similares encontradas:", top_molecule_indices)
 
-    molecule_similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path)
-    molecule_similarity_finder.find_similar_molecules()
 
