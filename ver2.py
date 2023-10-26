@@ -187,3 +187,11 @@ class Autoencoder(nn.Module):
         decoder_output, _ = self.decoder(z)
         logits = self.fc(decoder_output)
         return F.log_softmax(logits, dim=-1), z
+
+
+
+
+chembl_file_path = '/content/molecules_with_bio_activities.tsv'
+pkidb_file_path = '/content/pkidb_2023-06-30.tsv'
+similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device=device)
+similarity_matrix = similarity_finder.find_similar_molecules()
