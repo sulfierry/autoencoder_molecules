@@ -57,3 +57,26 @@ class MoleculeSimilarityFinder:
         # Filtrar a matriz de similaridade para manter apenas os pares com uma pontuação de similaridade acima do limiar
         similarity_matrix[similarity_matrix < threshold] = 0
         return similarity_matrix
+
+def main():
+    print("Using device:", device)
+    # Caminhos para os arquivos de entrada
+    chembl_file_path = '/content/molecules_with_bio_activities.tsv'
+    pkidb_file_path = '/content/pkidb_2023-06-30.tsv'
+    
+    # Limiar de similaridade
+    similarity_threshold = 0.8
+    
+    # Instancie a classe e encontre moléculas similares
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path)
+    similarity_matrix = similarity_finder.find_similar_molecules(similarity_threshold)
+    
+    print("Similarity Matrix:")
+    print(similarity_matrix)
+
+if __name__ == "__main__":
+    main()
+
+
+
+
