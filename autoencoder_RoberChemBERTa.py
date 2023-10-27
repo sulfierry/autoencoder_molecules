@@ -33,3 +33,27 @@ class MoleculeSimilarityFinder:
         embeddings = outputs.last_hidden_state.mean(dim=1)
         return embeddings
     
+    def find_similar_molecules(self, threshold=0.8):
+        chembl_smiles = self.load_data(self.chembl_file_path)
+        pkidb_smiles = self.load_data(self.pkidb_file_path)
+        
+        batch_size = 256
+        similarity_matrix = np.zeros((len(chembl_smiles), len(pkidb_smiles)))
+
+        # Processa as moléculas ChEMBL em batches
+        for i in tqdm(range(0, len(chembl_smiles), batch_size), desc='Processing ChEMBL molecules'):
+            chembl_batch = chembl_smiles[i:i + batch_size]
+            chembl_embeddings = self.get_molecule_embedding(chembl_batch).cpu().numpy()
+            
+            # Processa as moléculas PKIDB em batches
+            for j in range(0, len(pkidb_smiles), batch_size):
+                pkidb_batch = pkidb_smiles[j:j + batch_size]
+                pkidb_embeddings = self.get_molecule_embedding(pkidb_batch).cpu().numpy()
+
+                # Calcula a similaridade cosseno entre os dois batches
+                similarities = 1 - cdist(chembl_embeddings, pkidb_embeddings, metric='cosine')
+                similarity_matrix[i:i+batch_size, j:j+batch_size] = similarities
+
+        # Filtrar a matriz de similaridade para manter apenas os pares com uma pontuação de similaridade acima do limiar
+        similarity_matrix[similarity_matrix < threshold] = 0
+        return similarity_matrix
