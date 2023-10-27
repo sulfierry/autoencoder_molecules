@@ -23,3 +23,13 @@ class MoleculeSimilarityFinder:
         smiles = data[0].tolist()
         return smiles
     
+    def get_molecule_embedding(self, smiles_list):
+        tokens = self.tokenizer(smiles_list, return_tensors='pt', padding=True, truncation=True, max_length=512)
+        tokens = {key: val.to(self.device) for key, val in tokens.items()}
+        
+        with torch.no_grad():
+            outputs = self.model(**tokens)
+        
+        embeddings = outputs.last_hidden_state.mean(dim=1)
+        return embeddings
+    
