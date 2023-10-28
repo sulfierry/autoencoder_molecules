@@ -98,3 +98,27 @@ def plot_similarity_matrix(similarity_matrix):
     sns.heatmap(similarity_matrix.todense(), cmap="YlGnBu", vmin=0, vmax=1)
     plt.show()
 
+from google.colab import files
+
+def main():
+    # Configuração inicial
+    chembl_file_path = '/content/molecules_with_bio_activities.tsv'
+    pkidb_file_path = '/content/pkidb_2023-06-30.tsv'
+    output_file_path = '/content/similar_molecules.tsv'
+    threshold = 0.8
+    batch_size = 1024  # ou outro valor que você preferir
+    
+   # Instancie a classe e inicialize com os arquivos de entrada e o tamanho do batch
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path)
+    
+    # Encontre moléculas similares
+    similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(threshold)
+    
+    # Salve as moléculas similares em um arquivo TSV
+    save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
+    # Visualizar as pontuações de similaridade em um histograma
+    plot_histogram(similarity_scores)
+
+if __name__ == "__main__":
+    main()
