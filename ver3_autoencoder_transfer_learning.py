@@ -83,4 +83,11 @@ class MoleculeSimilarityFinder:
         plt.colorbar()
         plt.show()
 
+def plot_histogram(similarity_scores):
+    plt.hist(similarity_scores, bins=50, color='blue', alpha=0.7)
+    plt.title("Distribution of Similarity Scores")
+    plt.xlabel("Similarity Score")
+    plt.ylabel("Number of Molecules")
+    plt.show()
+
 
