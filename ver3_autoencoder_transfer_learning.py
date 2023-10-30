@@ -110,7 +110,21 @@ def main():
     output_file_path = '/content/similar_molecules.tsv'
     threshold = 0.8
     batch_size = 256  # ou outro valor que você preferir
+
+   # Instancie a classe e inicialize com os arquivos de entrada e o tamanho do batch
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path)
     
+    print(device)
+
+    # Encontre moléculas similares
+    similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(threshold)
+    
+    # Salve as moléculas similares em um arquivo TSV
+    save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
+    # Visualizar as pontuações de similaridade em um histograma
+    plot_histogram(similarity_scores)
+
 
 if __name__ == "__main__":
     main()
