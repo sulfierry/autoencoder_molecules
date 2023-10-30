@@ -101,4 +101,20 @@ def plot_similarity_matrix(similarity_matrix):
     plt.show()
 
 
+from google.colab import files
+
+def main():
+    # Configuração inicial
+    chembl_file_path = '/content/molecules_with_bio_activities.tsv'
+    pkidb_file_path = '/content/pkidb_2023-06-30.tsv'
+    output_file_path = '/content/similar_molecules.tsv'
+    threshold = 0.8
+    batch_size = 256  # ou outro valor que você preferir
+    
+
+if __name__ == "__main__":
+    main()
+
+
+
 
