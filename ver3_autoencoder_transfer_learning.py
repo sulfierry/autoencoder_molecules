@@ -90,4 +90,9 @@ def plot_histogram(similarity_scores):
     plt.ylabel("Number of Molecules")
     plt.show()
 
+def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
+    df = pd.DataFrame(similar_molecules_info)
+    df.to_csv(file_path, sep='\t', index=False)
+
+
 
