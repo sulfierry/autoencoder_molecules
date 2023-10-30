@@ -1,0 +1,75 @@
+import torch
+from transformers import RobertaModel, RobertaTokenizer
+import pandas as pd
+import numpy as np
+import faiss
+from tqdm.auto import tqdm
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+
+# Escolha o dispositivo disponível (CUDA ou CPU)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+class MoleculeSimilarityFinder:
+    def __init__(self, chembl_file_path, pkidb_file_path, device=device):
+        self.chembl_file_path = chembl_file_path
+        self.pkidb_file_path = pkidb_file_path
+        self.device = device
+
+        # Carregar o modelo ChemBERTa e o tokenizador
+        self.tokenizer = RobertaTokenizer.from_pretrained('seyonec/ChemBERTa-zinc-base-v1')
+        self.model = RobertaModel.from_pretrained('seyonec/ChemBERTa-zinc-base-v1')
+
+        # Mova o modelo para o dispositivo correto
+        self.model.to(device)
+
+    def load_data(self, file_path):
+        data = pd.read_csv(file_path, sep='\t', header=None)
+        smiles = data[0].tolist()
+        return smiles
+
+    def get_molecule_embedding(self, smiles_list):
+        tokens = self.tokenizer(smiles_list, return_tensors='pt', padding=True, truncation=True, max_length=512)
+        tokens = {key: val.to(self.device) for key, val in tokens.items()}
+
+        with torch.no_grad():
+            outputs = self.model(**tokens)
+
+        embeddings = outputs.last_hidden_state.mean(dim=1)
+        return embeddings
+
+    def find_similar_molecules(self, threshold=0.8, batch_size=1024):
+        chembl_smiles = self.load_data(self.chembl_file_path)
+        pkidb_smiles = self.load_data(self.pkidb_file_path)
+
+        similar_molecules_info = []
+        similarity_scores = []
+
+        for i in tqdm(range(0, len(pkidb_smiles), batch_size), desc="Processing PKIDB molecules"):
+            pkidb_batch = pkidb_smiles[i:i + batch_size]
+            pkidb_embeddings = self.get_molecule_embedding(pkidb_batch).cpu().numpy()
+            faiss.normalize_L2(pkidb_embeddings)
+
+            for j in range(0, len(chembl_smiles), batch_size):
+                chembl_batch = chembl_smiles[j:j + batch_size]
+                chembl_embeddings = self.get_molecule_embedding(chembl_batch).cpu().numpy()
+                faiss.normalize_L2(chembl_embeddings)
+
+                index = faiss.IndexFlatIP(chembl_embeddings.shape[1])
+                index.add(chembl_embeddings)
+
+                D, I = index.search(pkidb_embeddings, k=chembl_embeddings.shape[0])
+
+                for k in range(pkidb_embeddings.shape[0]):
+                    for l, score in zip(I[k], D[k]):
+                        if score > threshold:
+                            similar_molecules_info.append({
+                                'chembl_smile': chembl_batch[l],
+                                'pkidb_smile': pkidb_batch[k],
+                                'similarity': score
+                            })
+                            similarity_scores.append(score)
+
+        return similarity_scores, similar_molecules_info
+
