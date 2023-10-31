@@ -83,3 +83,10 @@ class MoleculeSimilarityFinder:
         plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=similarity_scores, cmap="YlGnBu")
         plt.colorbar()
         plt.show()
+
+def plot_histogram(similarity_scores):
+    plt.hist(similarity_scores, bins=50, color='blue', alpha=0.7)
+    plt.title("Distribution of Similarity Scores")
+    plt.xlabel("Similarity Score")
+    plt.ylabel("Number of Molecules")
+    plt.show()
