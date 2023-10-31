@@ -95,3 +95,8 @@ def plot_histogram(similarity_scores):
 def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
     df = pd.DataFrame(similar_molecules_info)
     df.to_csv(file_path, sep='\t', index=False)
+
+def plot_similarity_matrix(similarity_matrix):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(similarity_matrix.todense(), cmap="YlGnBu", vmin=0, vmax=1)
+    plt.show()
