@@ -137,3 +137,7 @@ def main():
     
     # Salva os resultados em um arquivo TSV
     save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
+
+if __name__ == "__main__":
+    main()
