@@ -76,3 +76,10 @@ class MoleculeSimilarityFinder:
                             })
 
         return similarity_scores, similar_molecules_info  # retorno corrigido
+
+    def visualize_with_tsne(self, similarity_matrix, similarity_scores):
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(similarity_matrix)
+        plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=similarity_scores, cmap="YlGnBu")
+        plt.colorbar()
+        plt.show()
