@@ -1,6 +1,6 @@
 # Molecule Similarity Finder
 
-Este código é destinado a encontrar moléculas similares entre dois conjuntos de dados utilizando um autoencoder para extrair características latentes das strings SMILES das moléculas.
+Este código é destinado a encontrar moléculas similares entre dois conjuntos de dados utilizando um autoencoder para extrair características latentes de SMILES.
 
 ## Como funciona
 
