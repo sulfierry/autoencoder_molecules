@@ -13,18 +13,6 @@ Este código é destinado a encontrar moléculas similares entre dois conjuntos 
 5. **Cálculo de Similaridade**: Depois que o autoencoder é treinado, usamos a camada de encoder para obter as características latentes para todas as moléculas nos dois conjuntos de dados. A semelhança entre as moléculas é então calculada usando similaridade de cosseno entre essas características latentes.
 6. **Resultados**: O programa retorna os índices das moléculas mais similares do conjunto de dados PKIDB para cada molécula no conjunto de dados ChEMBL.
 
-## Uso
-
-Para executar o programa, simplesmente configure os caminhos para os conjuntos de dados ChEMBL e PKIDB e execute o script. Por exemplo:
-
-```python
-chembl_file_path = './molecules_with_bio_activities.tsv'
-pkidb_file_path = './PKIDB/pkidb_2023-06-30.tsv'
-finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path)
-top_molecule_indices = finder.run()
-print("Índices das moléculas mais similares encontradas:", top_molecule_indices)
-```
-
 ## Dependências
 
 - **os**
