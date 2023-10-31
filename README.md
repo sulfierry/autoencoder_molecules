@@ -1,7 +1,5 @@
 # autoecoder_exploring
 
-# script ver2:
-
 # Molecule Similarity Finder
 
 Este código é destinado a encontrar moléculas similares entre dois conjuntos de dados utilizando um autoencoder para extrair características latentes das strings SMILES das moléculas.
