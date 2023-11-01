@@ -233,3 +233,6 @@ def main():
 
     # Histograma de Scores de Similaridade
     molecule_visualizer.plot_histogram(similarity_scores)
+
+if __name__ == "__main__":
+    main()
