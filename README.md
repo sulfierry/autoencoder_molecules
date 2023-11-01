@@ -1,7 +1,5 @@
 # SMILES Autoencoder
 
-Este projeto visa o desenvolvimento de autoencoders para a representação de moléculas utilizando a notação SMILES.
-
 ## Descrição
 
 O objetivo deste projeto é explorar diferentes arquiteturas de autoencoders para aprender representações latentes de moléculas. 
