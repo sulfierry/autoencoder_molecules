@@ -4,7 +4,7 @@
 
 ## Molecule Similarity Finder
 
-The code is designed to identify similar molecules between two distinct datasets, using a pre-trained ChemBERTa model to extract vector representations (embeddings) from SMILES notations. These representations are then used to calculate the similarity between the molecules of the two sets.
+The code is designed to identify similar molecules between two distinct datasets, using a pre-trained ChemBERTa model to extract vector representations (embeddings) from SMILES notations. These representations are then used to calculate the similarity between the molecules of the two sets. Also these representations can be used for various applications, such as drug discovery, molecule optimization, and much more.
 
 ## How it Works
 
