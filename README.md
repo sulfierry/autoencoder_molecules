@@ -1,30 +1,26 @@
 # SMILES Autoencoder
 
-## Descrição
-
-O objetivo deste projeto é explorar diferentes arquiteturas de autoencoders para aprender representações latentes de moléculas. 
-Estas representações podem ser utilizadas para diversas aplicações, como descoberta de fármacos, otimização de moléculas e muito mais.
+## Description
 
 ## Molecule Similarity Finder
 
-O código é projetado para identificar moléculas similares entre dois conjuntos de dados distintos, utilizando um modelo pré-treinado de ChemBERTa para extrair representações vetoriais (embeddings) dos SMILES. Estas representações são então utilizadas para calcular a similaridade entre as moléculas dos dois conjuntos.
+The code is designed to identify similar molecules between two distinct datasets, using a pre-trained ChemBERTa model to extract vector representations (embeddings) from SMILES notations. These representations are then used to calculate the similarity between the molecules of the two sets.
 
-## Como funciona
+## How it Works
 
-1. **Dados de Entrada**: O programa requer dois conjuntos de dados: um do ChEMBL e outro do PKIDB. Ambos os conjuntos de dados devem conter notações SMILES, que são representações textuais padronizadas das estruturas moleculares.
+1. **Input Data**: The program requires two datasets: one from ChEMBL and one from PKIDB. Both datasets must contain SMILES notations, which are standardized textual representations of molecular structures.
 
-2. **Preprocessamento**: As strings SMILES são preprocessadas para assegurar consistência e para remover quaisquer valores nulos ou inválidos. O preprocessamento também inclui a tokenização das strings SMILES, preparando-as para serem processadas pelo modelo ChemBERTa.
+2. **Preprocessing**: SMILES strings are preprocessed to ensure consistency and to remove any null or invalid values. Preprocessing also includes tokenizing the SMILES strings, preparing them to be processed by the ChemBERTa model.
 
-3. **Geração de Embeddings**: Utilizando o modelo ChemBERTa pré-treinado, as strings SMILES são transformadas em embeddings, que são representações vetoriais densas capturando as características essenciais das moléculas.
+3. **Generating Embeddings**: Using the pre-trained ChemBERTa model, SMILES strings are transformed into embeddings, which are dense vector representations capturing the essential features of the molecules.
 
-4. **Normalização**: Os embeddings são normalizados para garantir que a medida de similaridade calculada seja robusta e reflita adequadamente as semelhanças estruturais entre as moléculas.
+4. **Normalization**: The embeddings are normalized to ensure that the calculated similarity measure is robust and accurately reflects the structural similarities between the molecules.
 
-5. **Cálculo de Similaridade**: A similaridade entre as moléculas dos dois conjuntos de dados é calculada usando a similaridade de cosseno entre seus embeddings normalizados. Para cada molécula no conjunto de dados PKIDB, identificamos as moléculas mais similares no conjunto de dados ChEMBL.
+5. **Similarity Calculation**: Similarity between molecules from the two datasets is calculated using cosine similarity between their normalized embeddings. For each molecule in the PKIDB dataset, we identify the most similar molecules in the ChEMBL dataset.
 
-6. **Resultados**: O programa retorna uma lista das moléculas mais similares, incluindo suas notações SMILES, índices e pontuações de similaridade. Os resultados podem ser utilizados para análises subsequentes, como estudos de relações estrutura-atividade ou para identificar potenciais candidatos a fármacos.
+6. **Results**: The program returns a list of the most similar molecules, including their SMILES notations, indices, and similarity scores. The results can be used for subsequent analyses, such as studies of structure-activity relationships or to identify potential drug candidates.
 
-
-## Dependências
+## Dependencies
 
 - **os**
 - **sys**
@@ -32,4 +28,3 @@ O código é projetado para identificar moléculas similares entre dois conjunto
 - **pandas**
 - **torch**
 - **sklearn**
-
