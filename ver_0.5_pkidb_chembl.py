@@ -193,3 +193,43 @@ class MoleculeVisualization:
         df = pd.DataFrame(similar_molecules_info)
         df.to_csv(file_path, sep='\t', index=False)
 
+
+def main():
+    chembl_file_path = '/content/molecules_with_bio_activities.tsv'
+    pkidb_file_path = '/content/smiles_from_pkidb_to_rdkit.tsv'
+    output_file_path = '/content/similar_molecules_3.tsv'
+    threshold = 0.8
+    
+    print("Usando o dispositivo:", device)
+
+    # Inicializa o objeto MoleculeSimilarityFinder
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
+
+    # Encontra moléculas similares e retorna pontuações e informações
+    similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(threshold)
+
+    # Instanciando o visualizador de moléculas
+    molecule_visualizer = MoleculeVisualization()
+
+    # Salva as moléculas similares encontradas em um arquivo TSV
+    molecule_visualizer.save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
+    # Carrega os embeddings para visualização
+    chembl_data = pd.read_csv(chembl_file_path, sep='\t')
+    pkidb_data = pd.read_csv(pkidb_file_path, header=None, names=['pkidb_smile'])
+    chembl_smiles = chembl_data['canonical_smiles'].tolist()
+    pkidb_smiles = pkidb_data['pkidb_smile'].tolist()
+
+    chembl_embeddings = similarity_finder.get_molecule_embedding(chembl_smiles).cpu().numpy()
+    pkidb_embeddings = similarity_finder.get_molecule_embedding(pkidb_smiles).cpu().numpy()
+
+    all_embeddings = np.concatenate([chembl_embeddings, pkidb_embeddings], axis=0)
+
+    # Visualização com t-SNE
+    molecule_visualizer.visualize_with_tsne(all_embeddings, ['ChEMBL']*len(chembl_embeddings) + ['PKIDB']*len(pkidb_embeddings))
+
+    # Clusterização e Visualização
+    molecule_visualizer.cluster_and_visualize(all_embeddings, num_clusters=7)
+
+    # Histograma de Scores de Similaridade
+    molecule_visualizer.plot_histogram(similarity_scores)
