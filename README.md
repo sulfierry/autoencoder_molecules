@@ -9,7 +9,7 @@ Estas representações podem ser utilizadas para diversas aplicações, como des
 
 ## Molecule Similarity Finder
 
-O código é projetado para identificar moléculas similares entre dois conjuntos de dados distintos, utilizando um modelo pré-treinado de ChemBERTa para extrair representações vetoriais (embeddings) de notações SMILES. Estas representações são então utilizadas para calcular a similaridade entre as moléculas dos dois conjuntos.
+O código é projetado para identificar moléculas similares entre dois conjuntos de dados distintos, utilizando um modelo pré-treinado de ChemBERTa para extrair representações vetoriais (embeddings) dos SMILES. Estas representações são então utilizadas para calcular a similaridade entre as moléculas dos dois conjuntos.
 
 ## Como funciona
 
