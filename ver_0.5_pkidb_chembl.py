@@ -137,3 +137,59 @@ class MoleculeSimilarityFinder:
             torch.cuda.empty_cache()
 
         return similarity_scores, similar_molecules_info
+
+class MoleculeVisualization:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def plot_histogram(similarity_scores):
+        """
+        Plota um histograma dos scores de similaridade.
+        :param similarity_scores: Lista de scores de similaridade entre as moléculas.
+        """
+        plt.figure(figsize=(10, 6))
+        plt.hist(similarity_scores, bins=50, color='skyblue', edgecolor='black', alpha=0.7)
+        plt.title("Distribuição dos Scores de Similaridade")
+        plt.xlabel("Score de Similaridade")
+        plt.ylabel("Número de Moléculas")
+        plt.grid(axis='y', alpha=0.75)
+        plt.show()
+
+    @staticmethod
+    def visualize_with_tsne(embeddings, labels):
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('t-SNE Visualization of Molecule Embeddings')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.show()
+
+    @staticmethod
+    def cluster_and_visualize(embeddings, num_clusters=5):
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(embeddings)
+        labels = kmeans.labels_
+
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('Clustered Visualization of Molecule Embeddings')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.show()
+
+    @staticmethod
+    def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
+        """
+        Salva as moléculas similares encontradas em um arquivo TSV.
+        :param similar_molecules_info: Informações sobre moléculas similares.
+        :param file_path: Caminho para o arquivo de saída.
+        """
+        df = pd.DataFrame(similar_molecules_info)
+        df.to_csv(file_path, sep='\t', index=False)
+
