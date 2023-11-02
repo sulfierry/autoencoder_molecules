@@ -198,14 +198,13 @@ class MoleculeVisualization:
         df.to_csv(file_path, sep='\t', index=False)
 
 
-
-
 def main():
+    
     chembl_file_path = '/content/molecules_with_bio_activities.tsv'
     pkidb_file_path = '/content/smiles_from_pkidb_to_rdkit.tsv'
     output_file_path = '/content/similar_molecules_3.tsv'
     threshold = 0.8
-    
+
     print("Usando o dispositivo:", device)
 
     # Inicializa o objeto MoleculeSimilarityFinder
@@ -239,6 +238,6 @@ def main():
 
     # Histograma de Scores de Similaridade
     molecule_visualizer.plot_histogram(similarity_scores)
-
+    
 if __name__ == "__main__":
     main()
