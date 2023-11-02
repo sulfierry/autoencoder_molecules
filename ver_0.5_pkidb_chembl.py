@@ -142,11 +142,8 @@ class MoleculeSimilarityFinder:
             torch.cuda.empty_cache()
 
         return similarity_scores, similar_molecules_info
-
 class MoleculeVisualization:
-    def __init__(self):
-        pass
-
+  
     @staticmethod
     def plot_histogram(similarity_scores):
         """
@@ -171,7 +168,7 @@ class MoleculeVisualization:
         plt.title('t-SNE Visualization of Molecule Embeddings')
         plt.xlabel('t-SNE 1')
         plt.ylabel('t-SNE 2')
-        plt.show()
+        plt.show(n
 
     @staticmethod
     def cluster_and_visualize(embeddings, num_clusters=5):
@@ -197,6 +194,7 @@ class MoleculeVisualization:
         """
         df = pd.DataFrame(similar_molecules_info)
         df.to_csv(file_path, sep='\t', index=False)
+
 
 
 def main():
