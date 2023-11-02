@@ -156,3 +156,38 @@ class MolecularComparison:
         plt.xlabel('t-SNE 1')
         plt.ylabel('t-SNE 2')
         plt.show()
+
+
+if __name__ == "__main__":
+    chunk_size = 1000  # Defina o tamanho do lote com base na sua memória disponível
+    data_path = './similar_molecules_3.tsv'
+
+    # Análise para 'chembl_smile' e 'pkidb_smile'
+    data_iterator = pd.read_csv(data_path, sep='\t', chunksize=chunk_size)
+    chembl_analysis = SmilesAnalysis(data_iterator, 'chembl_smile')
+    print("Estatísticas do Tamanho das Estruturas (chembl_smile):")
+    print(chembl_analysis.calculate_statistics())
+    chembl_analysis.plot_histogram()
+
+    data_iterator = pd.read_csv(data_path, sep='\t', chunksize=chunk_size)
+    pkidb_analysis = SmilesAnalysis(data_iterator, 'pkidb_smile')
+    print("Estatísticas do Tamanho das Estruturas (pkidb_smile):")
+    print(pkidb_analysis.calculate_statistics())
+    pkidb_analysis.plot_histogram()
+
+    # Comparação Molecular
+    # Nota: Esta parte lê todo o conjunto de dados de uma vez. Ajuste conforme necessário.
+    data = pd.read_csv(data_path, sep='\t')
+    molecular_comparison = MolecularComparison(data, 'chembl_smile', 'pkidb_smile')
+    print("Similaridades de Tanimoto:")
+    similarities = molecular_comparison.tanimoto_similarity()
+    print(similarities)
+
+    # Visualização do Espaço Químico
+    molecular_comparison.chemical_space_visualization()
+
+    # Análise de Diversidade Química
+    diversity1, diversity2, inter_diversity = molecular_comparison.chemical_diversity_analysis()
+    print("Diversidade Química (chembl_smile):", diversity1)
+    print("Diversidade Química (pkidb_smile):", diversity2)
+    print("Diversidade Química Inter-conjuntos:", inter_diversity)
