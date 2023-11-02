@@ -1,3 +1,8 @@
+# !pip install transformers
+# !pip install faiss-gpu
+# !pip freeze > requirements.txt
+# pip install -r requirements.txt
+
 import torch
 import faiss
 import numpy as np
