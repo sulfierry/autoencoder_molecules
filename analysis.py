@@ -130,3 +130,29 @@ class MolecularComparison:
         plt.legend(title='Source')
         plt.show()
 
+
+
+    def chemical_diversity_analysis(self):
+        fps1 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols1 if m is not None]
+        fps2 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols2 if m is not None]
+        
+        diversity1 = -np.mean(squareform(pdist(np.array(fps1), metric='jaccard')))
+        diversity2 = -np.mean(squareform(pdist(np.array(fps2), metric='jaccard')))
+        inter_diversity = -np.mean(pdist(np.vstack([fps1, fps2]), metric='jaccard'))
+        
+        return diversity1, diversity2, inter_diversity
+
+    @staticmethod
+    def cluster_and_visualize(embeddings, num_clusters=5):
+        kmeans = MiniBatchKMeans(n_clusters=num_clusters, random_state=42, n_init=10).fit(embeddings)
+        labels = kmeans.labels_
+
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('Clustered Visualization of Molecule Embeddings')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.show()
