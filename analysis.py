@@ -95,3 +95,37 @@ class SmilesAnalysis:
         labels = np.zeros(len(embeddings))  # Dummy labels for visualization
         self.visualize_with_tsne(embeddings, labels)
         self.cluster_and_visualize(embeddings)
+
+
+
+class MolecularComparison:
+    def __init__(self, data, smiles_col1, smiles_col2):
+        self.data = data
+        self.smiles_col1 = smiles_col1
+        self.smiles_col2 = smiles_col2
+        self.mols1 = data[smiles_col1].apply(Chem.MolFromSmiles)
+        self.mols2 = data[smiles_col2].apply(Chem.MolFromSmiles)
+
+    def tanimoto_similarity(self):
+        fps1 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols1 if m is not None]
+        fps2 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols2 if m is not None]
+        similarities = [DataStructs.FingerprintSimilarity(fp1, fp2) for fp1, fp2 in zip(fps1, fps2)]
+        self.data['tanimoto_similarity'] = similarities
+        return similarities
+
+    def chemical_space_visualization(self):
+        fps1 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols1 if m is not None]
+        fps2 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols2 if m is not None]
+        embeddings = np.array(fps1 + fps2)
+        labels = ['chembl'] * len(fps1) + ['pkidb'] * len(fps2)
+
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('Chemical Space Visualization')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.legend(title='Source')
+        plt.show()
