@@ -154,3 +154,8 @@ def main():
     pkidb_embeddings = similarity_finder.get_molecule_embedding(pkidb_smiles).cpu().numpy()
 
 
+    all_embeddings = np.concatenate([chembl_embeddings, pkidb_embeddings], axis=0)
+    molecule_visualizer.visualize_with_tsne(all_embeddings, ['ChEMBL']*len(chembl_embeddings) + ['PKIDB']*len(pkidb_embeddings))
+    
+
+
