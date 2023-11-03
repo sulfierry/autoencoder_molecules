@@ -123,4 +123,13 @@ class MoleculeVisualization:
     @staticmethod
     def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
         df = pd.DataFrame(similar_molecules_info)
+
+
+
+def main():
+    chembl_file_path = '/content/molecules_with_bio_activities.tsv'
+    pkidb_file_path = '/content/smiles_from_pkidb_to_rdkit.tsv'
+    output_file_path = '/content/similar_molecules_4.tsv'
+    threshold = 0.8
+
         df.to_csv(file_path, sep='\t', index=False)
