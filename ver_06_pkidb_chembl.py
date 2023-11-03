@@ -149,3 +149,8 @@ def main():
     chembl_smiles = chembl_data['canonical_smiles'].tolist()
     pkidb_smiles = pkidb_data['pkidb_smile'].tolist()
 
+
+    chembl_embeddings = similarity_finder.get_molecule_embedding(chembl_smiles).cpu().numpy()
+    pkidb_embeddings = similarity_finder.get_molecule_embedding(pkidb_smiles).cpu().numpy()
+
+
