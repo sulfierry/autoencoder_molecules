@@ -156,6 +156,8 @@ def main():
 
     all_embeddings = np.concatenate([chembl_embeddings, pkidb_embeddings], axis=0)
     molecule_visualizer.visualize_with_tsne(all_embeddings, ['ChEMBL']*len(chembl_embeddings) + ['PKIDB']*len(pkidb_embeddings))
+    molecule_visualizer.cluster_and_visualize(all_embeddings, num_clusters=3)
+    molecule_visualizer.plot_histogram(similarity_scores)
     
 
 
