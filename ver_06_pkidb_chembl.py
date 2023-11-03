@@ -132,4 +132,11 @@ def main():
     output_file_path = '/content/similar_molecules_4.tsv'
     threshold = 0.8
 
-        df.to_csv(file_path, sep='\t', index=False)
+    df.to_csv(file_path, sep='\t', index=False)
+
+
+    print("Usando o dispositivo:", device)
+
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
+    similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(threshold)
+
