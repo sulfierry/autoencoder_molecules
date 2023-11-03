@@ -140,3 +140,12 @@ def main():
     similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
     similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(threshold)
 
+
+    molecule_visualizer = MoleculeVisualization()
+    molecule_visualizer.save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
+    chembl_data = pd.read_csv(chembl_file_path, sep='\t')
+    pkidb_data = pd.read_csv(pkidb_file_path, header=None, names=['pkidb_smile'])
+    chembl_smiles = chembl_data['canonical_smiles'].tolist()
+    pkidb_smiles = pkidb_data['pkidb_smile'].tolist()
+
