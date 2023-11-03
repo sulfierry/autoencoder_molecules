@@ -5,6 +5,7 @@ import faiss
 from tqdm.auto import tqdm
 import time
 
+
 # Definindo o dispositivo como GPU (CUDA) se disponível, senão será CPU
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
