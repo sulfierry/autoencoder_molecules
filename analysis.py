@@ -1,16 +1,20 @@
+import os
+import logging
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
-from rdkit import Chem, DataStructs
-from rdkit.Chem import Descriptors, rdFMCS, AllChem
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit import DataStructs
 from scipy.spatial.distance import pdist, squareform
 import concurrent.futures
-from sklearn.cluster import MiniBatchKMeans
 from tqdm import tqdm
+from sklearn.cluster import KMeans, MiniBatchKMeans
 
+# Configuração básica de logging
+logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
 class SmilesAnalysis:
     def __init__(self, data_iterator, smiles_col):
@@ -25,24 +29,31 @@ class SmilesAnalysis:
         self.data_iterator = pd.read_csv(data_path, sep='\t', chunksize=chunk_size)  # Reinicializar o iterador
         pbar = tqdm(total=total_chunks)
         for chunk in self.data_iterator:
-            mols_chunk = chunk[self.smiles_col].dropna().apply(Chem.MolFromSmiles)
-            fps_chunk = self.compute_fingerprints_parallel(mols_chunk, pbar)
-            self.mols.extend(mols_chunk)
-            self.fps.extend(fps_chunk)
-            pbar.update(1)
+          mols_chunk = chunk[self.smiles_col].dropna().apply(Chem.MolFromSmiles)
+          fps_chunk = self.compute_fingerprints_parallel(mols_chunk)
+          self.mols.extend(mols_chunk)
+          self.fps.extend(fps_chunk)
+          pbar.update(1)
         pbar.close()
 
-    def compute_fingerprints_parallel(self, mols_chunk, pbar):
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            fps_chunk = list(tqdm(executor.map(self.compute_fingerprint, mols_chunk), total=len(mols_chunk), desc="Computing fingerprints", leave=False))
-        pbar.set_postfix(refresh=True)  # Atualizar a barra de progresso dos chunks
+
+    def compute_fingerprints_parallel(self, mols_chunk):
+        # Limitar o número de workers para evitar sobrecarregar o sistema
+        num_workers = min(4, os.cpu_count())
+        with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+            fps_chunk = list(executor.map(self.compute_fingerprint, mols_chunk))
         return [fp for fp in fps_chunk if fp is not None]
 
     @staticmethod
     def compute_fingerprint(mol):
-        if mol is not None:
-            return AllChem.GetMorganFingerprintAsBitVect(mol, 2)
-        return None
+        try:
+            if mol is not None:
+                return AllChem.GetMorganFingerprintAsBitVect(mol, 2)
+            return None
+        except Exception as e:
+            # Logar a exceção
+            logging.exception(f"Erro ao calcular a impressão digital: {e}")
+            return None
 
     def calculate_statistics(self):
         lengths = self.data[self.smiles_col].apply(len)
@@ -96,8 +107,6 @@ class SmilesAnalysis:
         self.visualize_with_tsne(embeddings, labels)
         self.cluster_and_visualize(embeddings)
 
-
-
 class MolecularComparison:
     def __init__(self, data, smiles_col1, smiles_col2):
         self.data = data
@@ -130,16 +139,14 @@ class MolecularComparison:
         plt.legend(title='Source')
         plt.show()
 
-
-
     def chemical_diversity_analysis(self):
         fps1 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols1 if m is not None]
         fps2 = [AllChem.GetMorganFingerprintAsBitVect(m, 2) for m in self.mols2 if m is not None]
-        
+
         diversity1 = -np.mean(squareform(pdist(np.array(fps1), metric='jaccard')))
         diversity2 = -np.mean(squareform(pdist(np.array(fps2), metric='jaccard')))
         inter_diversity = -np.mean(pdist(np.vstack([fps1, fps2]), metric='jaccard'))
-        
+
         return diversity1, diversity2, inter_diversity
 
     @staticmethod
@@ -157,10 +164,9 @@ class MolecularComparison:
         plt.ylabel('t-SNE 2')
         plt.show()
 
-
 if __name__ == "__main__":
-    chunk_size = 1000  # Defina o tamanho do lote com base na sua memória disponível
-    data_path = './similar_molecules_3.tsv'
+    chunk_size = 500  # Defina o tamanho do lote com base na sua memória disponível
+    data_path = '/content/similar_molecules_3.tsv'
 
     # Análise para 'chembl_smile' e 'pkidb_smile'
     data_iterator = pd.read_csv(data_path, sep='\t', chunksize=chunk_size)
@@ -176,7 +182,6 @@ if __name__ == "__main__":
     pkidb_analysis.plot_histogram()
 
     # Comparação Molecular
-    # Nota: Esta parte lê todo o conjunto de dados de uma vez. Ajuste conforme necessário.
     data = pd.read_csv(data_path, sep='\t')
     molecular_comparison = MolecularComparison(data, 'chembl_smile', 'pkidb_smile')
     print("Similaridades de Tanimoto:")
