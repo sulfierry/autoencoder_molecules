@@ -52,7 +52,15 @@ def main():
     # Debug: imprimir o número de linhas antes e após o filtro
     print(f"Número de linhas antes do filtro: {len(all_data)}")
     print(f"Número de linhas após o filtro: {len(filtered_data)}")
+
+    # Sort the filtered data by 'tanimoto_similarity' in ascending order
+    filtered_data.sort_values(by='tanimoto_similarity', inplace=True)
     
+    # Save the sorted DataFrame
+    filtered_data.to_csv('filtered_similar_molecules.tsv', sep='\t', index=False)
+
+    print(filtered_data.head())
+
 
 
     
