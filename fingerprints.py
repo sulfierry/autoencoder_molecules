@@ -25,3 +25,11 @@ def process_chunk(chunk, threshold):
     filtered_chunk = chunk[chunk['tanimoto_similarity'] >= threshold]
     
     return chunk, filtered_chunk
+
+
+# Função principal
+def main():
+    file_path = './similar_molecules_3.tsv'
+    threshold = 0.5
+    chunksize = 10000  # Ajuste este valor de acordo com a sua memória disponível
+    
