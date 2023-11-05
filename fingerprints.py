@@ -49,5 +49,10 @@ def main():
             all_data = pd.concat([all_data, chunk], ignore_index=True)
             filtered_data = pd.concat([filtered_data, filtered_chunk], ignore_index=True)
     
+    # Debug: imprimir o número de linhas antes e após o filtro
+    print(f"Número de linhas antes do filtro: {len(all_data)}")
+    print(f"Número de linhas após o filtro: {len(filtered_data)}")
+    
+
 
     
