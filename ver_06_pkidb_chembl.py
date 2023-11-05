@@ -73,7 +73,6 @@ class MoleculeSimilarityFinder:
 
         return similarity_scores, similar_molecules_info
 
-
 class MoleculeVisualization:
     @staticmethod
     def plot_histogram(similarity_scores):
@@ -86,7 +85,6 @@ class MoleculeVisualization:
         plt.savefig('distribution_of_similarity_scores.png')
         plt.show()
         plt.close()
-
 
     @staticmethod
     def visualize_with_tsne(embeddings, labels):
@@ -123,8 +121,7 @@ class MoleculeVisualization:
     @staticmethod
     def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
         df = pd.DataFrame(similar_molecules_info)
-
-
+        df.to_csv(file_path, sep='\t', index=False)
 
 def main():
     chembl_file_path = '/content/molecules_with_bio_activities.tsv'
@@ -132,14 +129,10 @@ def main():
     output_file_path = '/content/similar_molecules_4.tsv'
     threshold = 0.8
 
-    df.to_csv(file_path, sep='\t', index=False)
-
-
     print("Usando o dispositivo:", device)
 
     similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
     similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(threshold)
-
 
     molecule_visualizer = MoleculeVisualization()
     molecule_visualizer.save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
@@ -149,15 +142,13 @@ def main():
     chembl_smiles = chembl_data['canonical_smiles'].tolist()
     pkidb_smiles = pkidb_data['pkidb_smile'].tolist()
 
-
     chembl_embeddings = similarity_finder.get_molecule_embedding(chembl_smiles).cpu().numpy()
     pkidb_embeddings = similarity_finder.get_molecule_embedding(pkidb_smiles).cpu().numpy()
-
 
     all_embeddings = np.concatenate([chembl_embeddings, pkidb_embeddings], axis=0)
     molecule_visualizer.visualize_with_tsne(all_embeddings, ['ChEMBL']*len(chembl_embeddings) + ['PKIDB']*len(pkidb_embeddings))
     molecule_visualizer.cluster_and_visualize(all_embeddings, num_clusters=3)
     molecule_visualizer.plot_histogram(similarity_scores)
-    
 
-
+if __name__ == "__main__":
+    main()
