@@ -62,5 +62,8 @@ def main():
     print(filtered_data.head())
 
 
+if __name__ == "__main__":
+    main()
+
 
     
