@@ -32,4 +32,22 @@ def main():
     file_path = './similar_molecules_3.tsv'
     threshold = 0.5
     chunksize = 10000  # Ajuste este valor de acordo com a sua memória disponível
+
+    # Preparar os dataframes finais
+    all_data = pd.DataFrame()
+    filtered_data = pd.DataFrame()
+    
+    # Processar os dados em chunks usando paralelização
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        futures = []
+        
+        for chunk in pd.read_csv(file_path, sep='\t', chunksize=chunksize):
+            futures.append(executor.submit(process_chunk, chunk, threshold))
+            
+        for future in futures:
+            chunk, filtered_chunk = future.result()
+            all_data = pd.concat([all_data, chunk], ignore_index=True)
+            filtered_data = pd.concat([filtered_data, filtered_chunk], ignore_index=True)
+    
+
     
