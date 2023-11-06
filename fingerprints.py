@@ -31,3 +31,9 @@ def main():
     file_path = './similar_molecules_3.tsv'
     threshold = 0.6
     chunksize = 10000  # Ajuste este valor de acordo com a sua memória disponível
+
+
+    # Preparar os dataframes finais
+    all_data = pd.DataFrame()
+    filtered_data = pd.DataFrame()
+
