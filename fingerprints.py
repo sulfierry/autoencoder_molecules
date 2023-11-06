@@ -37,3 +37,24 @@ def main():
     all_data = pd.DataFrame()
     filtered_data = pd.DataFrame()
 
+    # Processar os dados em chunks usando paralelização
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        futures = []
+
+        # Iniciar tqdm para acompanhar o número total de chunks
+        total_chunks = sum(1 for _ in pd.read_csv(file_path, sep='\t', chunksize=chunksize))
+        tqdm_iter = tqdm(pd.read_csv(file_path, sep='\t', chunksize=chunksize), total=total_chunks, desc="Processing Chunks")
+
+        for chunk in tqdm_iter:
+            futures.append(executor.submit(process_chunk, chunk, threshold))
+
+        # Iniciar tqdm para acompanhar o progresso da conclusão dos futuros
+        for future in tqdm(futures, total=len(futures), desc="Completing Futures"):
+            chunk, filtered_chunk = future.result()
+            all_data = pd.concat([all_data, chunk], ignore_index=True)
+            filtered_data = pd.concat([filtered_data, filtered_chunk], ignore_index=True)
+
+    # Debug: imprimir o número de linhas antes e após o filtro
+    print(f"Número de linhas antes do filtro: {len(all_data)}")
+    print(f"Número de linhas após o filtro: {len(filtered_data)}")
+
