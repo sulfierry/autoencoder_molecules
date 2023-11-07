@@ -142,3 +142,16 @@ class MoleculeVisualization:
     def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
         df = pd.DataFrame(similar_molecules_info)
         df.to_csv(file_path, sep='\t', index=False)
+
+
+def main():
+    # Iniciar o cronômetro
+    start_time = time.time()
+
+
+    chembl_file_path = '/content/drive/MyDrive/chemBERTA/mol_10000.tsv'
+    pkidb_file_path = '/content/drive/MyDrive/chemBERTA/smiles_from_pkidb_to_rdkit.tsv'
+    chembl_embeddings_path = '/content/drive/MyDrive/chemBERTA/XX_TIMER_ver7_chembl_embeddings.npy'
+    output_file_path = '/content/drive/MyDrive/chemBERTA/similar_molecules.tsv'
+    threshold = 0.8
+
