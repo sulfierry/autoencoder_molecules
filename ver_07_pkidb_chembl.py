@@ -120,3 +120,25 @@ class MoleculeVisualization:
         plt.close()
 
 
+    @staticmethod
+    def cluster_and_visualize(embeddings, num_clusters=5):
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10).fit(embeddings)
+        labels = kmeans.labels_
+
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('Clustered Visualization of Molecule Embeddings')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.savefig('clustered_visualization_of_molecule_embeddings.png')
+        plt.show()
+        plt.close()
+
+
+    @staticmethod
+    def save_similar_molecules_to_tsv(similar_molecules_info, file_path):
+        df = pd.DataFrame(similar_molecules_info)
+        df.to_csv(file_path, sep='\t', index=False)
