@@ -187,5 +187,9 @@ def main():
     # Encontrar moléculas similares
     similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(pkidb_file_path, chembl_embeddings_path, threshold)
 
+    # Visualizações
+    molecule_visualizer = MoleculeVisualization()
+    molecule_visualizer.save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
   
 
