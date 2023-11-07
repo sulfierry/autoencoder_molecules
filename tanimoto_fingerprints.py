@@ -8,8 +8,11 @@ from tqdm import tqdm
 # Função para processar um chunk de dados
 def process_chunk(chunk, threshold):
     # Converter SMILES em objetos de molécula RDKit e calcular fingerprints
-    chembl_molecules = (Chem.MolFromSmiles(smile) for smile in chunk['chembl_smile'])
-    pkidb_molecules = (Chem.MolFromSmiles(smile) for smile in chunk['pkidb_smile'])
+    chembl_smiles_index = 1  # índice da coluna para 'chembl_smile'
+    target_smiles_index = 2  # índice da coluna para 'target_smile' ou 'pkidb_smile'
+
+    chembl_molecules = (Chem.MolFromSmiles(smile) for smile in chunk.iloc[:, chembl_smiles_index])
+    pkidb_molecules = (Chem.MolFromSmiles(smile) for smile in chunk.iloc[:, target_smiles_index])
 
     chembl_fps = (AllChem.GetMorganFingerprintAsBitVect(mol, radius=2) for mol in chembl_molecules if mol)
     pkidb_fps = (AllChem.GetMorganFingerprintAsBitVect(mol, radius=2) for mol in pkidb_molecules if mol)
@@ -25,6 +28,7 @@ def process_chunk(chunk, threshold):
     filtered_chunk = chunk[chunk['tanimoto_similarity'] >= threshold]
 
     return chunk, filtered_chunk
+
 
 # Função principal
 def main():
