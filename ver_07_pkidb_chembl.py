@@ -171,3 +171,21 @@ def main():
         np.save(chembl_embeddings_path, chembl_embeddings)
 
 
+    # Inicializar o localizador de similaridade
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
+
+    # Carregar ou calcular embeddings do PKIDB
+    if os.path.exists(pkidb_file_path):
+        print(f"Carregando dados do PKIDB de {pkidb_file_path}")
+        pkidb_data = pd.read_csv(pkidb_file_path, header=None, names=['pkidb_smile'])
+        pkidb_smiles = pkidb_data['pkidb_smile'].tolist()
+        pkidb_embeddings = similarity_finder.get_molecule_embedding(pkidb_smiles).cpu().numpy()
+    else:
+        print("O arquivo PKIDB não foi encontrado.")
+        return
+
+    # Encontrar moléculas similares
+    similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(pkidb_file_path, chembl_embeddings_path, threshold)
+
+  
+
