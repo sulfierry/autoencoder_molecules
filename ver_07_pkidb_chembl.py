@@ -191,5 +191,19 @@ def main():
     molecule_visualizer = MoleculeVisualization()
     molecule_visualizer.save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
 
+  # Parar o cronômetro e imprimir o tempo total
+    end_time = time.time()
+    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
+
+    # Combina os embeddings para visualização
+    all_embeddings = np.concatenate([chembl_embeddings, pkidb_embeddings], axis=0)
+    labels = ['ChEMBL'] * len(chembl_embeddings) + ['PKIDB'] * len(pkidb_embeddings)
+
+    # Visualização t-SNE
+    molecule_visualizer.visualize_with_tsne(all_embeddings, labels)
+    molecule_visualizer.cluster_and_visualize(all_embeddings, num_clusters=3)
+    molecule_visualizer.plot_histogram(similarity_scores)
+
+
   
 
