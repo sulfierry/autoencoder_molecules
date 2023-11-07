@@ -89,3 +89,18 @@ class MoleculeSimilarityFinder:
 
         return similarity_scores, similar_molecules_info
 
+
+
+class MoleculeVisualization:
+    @staticmethod
+    def plot_histogram(similarity_scores):
+        plt.figure(figsize=(10, 6))
+        plt.hist(similarity_scores, bins=50, color='skyblue', edgecolor='black', alpha=0.7)
+        plt.title("Distribuição dos Scores de Similaridade")
+        plt.xlabel("Score de Similaridade")
+        plt.ylabel("Número de Moléculas")
+        plt.grid(axis='y', alpha=0.75)
+        plt.savefig('distribution_of_similarity_scores.png')
+        plt.show()
+        plt.close()
+
