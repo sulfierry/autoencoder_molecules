@@ -155,3 +155,19 @@ def main():
     output_file_path = '/content/drive/MyDrive/chemBERTA/similar_molecules.tsv'
     threshold = 0.8
 
+
+    print("Usando o dispositivo:", device)
+
+    # Carregar ou calcular embeddings do ChEMBL
+    if os.path.exists(chembl_embeddings_path):
+        print(f"Carregando embeddings existentes em {chembl_embeddings_path}")
+        chembl_embeddings = np.load(chembl_embeddings_path)
+    else:
+        print(f"Criando embeddings a partir do input {chembl_file_path}")
+        chembl_data = pd.read_csv(chembl_file_path, sep='\t')
+        chembl_smiles = chembl_data['canonical_smiles'].tolist()
+        similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
+        chembl_embeddings = similarity_finder.get_molecule_embedding(chembl_smiles).cpu().numpy()
+        np.save(chembl_embeddings_path, chembl_embeddings)
+
+
