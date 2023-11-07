@@ -104,3 +104,19 @@ class MoleculeVisualization:
         plt.show()
         plt.close()
 
+
+    @staticmethod
+    def visualize_with_tsne(embeddings, labels):
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('t-SNE Visualization of Molecule Embeddings')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.savefig('tsne_visualization_of_molecule_embeddings.png')
+        plt.show()
+        plt.close()
+
+
