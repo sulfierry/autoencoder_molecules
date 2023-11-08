@@ -211,4 +211,27 @@ def main():
         print("O arquivo PKIDB não foi encontrado.")
         return
 
+    # Encontrar moléculas similares
+    similarity_scores, similar_molecules_info = similarity_finder.find_similar_molecules(pkidb_file_path, chembl_embeddings_path, threshold)
+
+    # Salvar moléculas similares em um arquivo TSV
+    MoleculeVisualization.save_similar_molecules_to_tsv(similar_molecules_info, output_file_path)
+
+    # Visualização
+    molecule_visualizer = MoleculeVisualization()
+    all_embeddings = np.concatenate([chembl_embeddings, pkidb_embeddings], axis=0)
+    labels = ['ChEMBL'] * len(chembl_embeddings) + ['PKIDB'] * len(pkidb_embeddings)
+
+    # Visualização t-SNE
+    molecule_visualizer.visualize_with_tsne(all_embeddings, labels)
+
+    # Clustering e visualização t-SNE
+    molecule_visualizer.cluster_and_visualize(all_embeddings, num_clusters=3)
+
+    # Histograma de scores de similaridade
+    molecule_visualizer.plot_histogram(similarity_scores)
+
+    # Parar o cronômetro e imprimir o tempo total
+    end_time = time.time()
+    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
 
