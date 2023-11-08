@@ -113,3 +113,33 @@ def parallel_compute_embeddings(smiles_list, similarity_finder):
         smiles_sublists = [smiles_list[i:i + num_smiles_per_process] for i in range(0, len(smiles_list), num_smiles_per_process)]
         results = pool.starmap(compute_embeddings, zip(smiles_sublists, [similarity_finder]*num_cpus))
     return np.concatenate(results)
+
+
+
+
+class MoleculeVisualization:
+    @staticmethod
+    def plot_histogram(similarity_scores):
+        plt.figure(figsize=(10, 6))
+        plt.hist(similarity_scores, bins=50, color='skyblue', edgecolor='black', alpha=0.7)
+        plt.title("Distribuição dos Scores de Similaridade")
+        plt.xlabel("Score de Similaridade")
+        plt.ylabel("Número de Moléculas")
+        plt.grid(axis='y', alpha=0.75)
+        plt.savefig('distribution_of_similarity_scores.png')
+        plt.show()
+        plt.close()
+
+    @staticmethod
+    def visualize_with_tsne(embeddings, labels):
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(x=tsne_results[:, 0], y=tsne_results[:, 1], hue=labels, palette="viridis", s=100, alpha=0.7)
+        plt.title('t-SNE Visualization of Molecule Embeddings')
+        plt.xlabel('t-SNE 1')
+        plt.ylabel('t-SNE 2')
+        plt.savefig('tsne_visualization_of_molecule_embeddings.png')
+        plt.show()
+        plt.close()
