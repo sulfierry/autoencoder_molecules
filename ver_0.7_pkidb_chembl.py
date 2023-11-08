@@ -185,3 +185,30 @@ def main():
     threshold = 0.8
 
     print("Usando o dispositivo:", device)
+
+
+    # Inicializar o localizador de similaridade
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
+
+    # Carregar ou calcular embeddings do ChEMBL
+    if os.path.exists(chembl_embeddings_path):
+        print(f"Carregando embeddings existentes em {chembl_embeddings_path}")
+        chembl_embeddings = np.load(chembl_embeddings_path)
+    else:
+        print(f"Criando embeddings a partir do input {chembl_file_path}")
+        chembl_data = pd.read_csv(chembl_file_path, sep='\t')
+        chembl_smiles = chembl_data['canonical_smiles'].tolist()
+        chembl_embeddings = similarity_finder.get_molecule_embedding(chembl_smiles).cpu().numpy()
+        np.save(chembl_embeddings_path, chembl_embeddings)
+
+    # Carregar ou calcular embeddings do PKIDB
+    if os.path.exists(pkidb_file_path):
+        print(f"Carregando dados do PKIDB de {pkidb_file_path}")
+        pkidb_data = pd.read_csv(pkidb_file_path, header=None, names=['pkidb_smile'])
+        pkidb_smiles = pkidb_data['pkidb_smile'].tolist()
+        pkidb_embeddings = similarity_finder.get_molecule_embedding(pkidb_smiles).cpu().numpy()
+    else:
+        print("O arquivo PKIDB não foi encontrado.")
+        return
+
+
