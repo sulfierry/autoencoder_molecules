@@ -99,3 +99,19 @@ class MoleculeSimilarityFinder:
 
         return similarity_scores, similar_molecules_info
 
+
+
+# Auxiliary functions for parallel processing
+def compute_embeddings(smiles, similarity_finder):
+    return similarity_finder.get_molecule_embedding(smiles).numpy()
+
+def parallel_compute_embeddings(smiles_list, similarity_finder):
+    # Define num_cpus inside the function to ensure it captures the current number of CPUs available
+    num_cpus = cpu_count()
+    with Pool(processes=num_cpus) as pool:
+        num_smiles_per_process = len(smiles_list) // num_cpus + 1
+        smiles_sublists = [smiles_list[i:i + num_smiles_per_process] for i in range(0, len(smiles_list), num_smiles_per_process)]
+        results = pool.starmap(compute_embeddings, zip(smiles_sublists, [similarity_finder]*num_cpus))
+    return np.concatenate(results)
+
+
