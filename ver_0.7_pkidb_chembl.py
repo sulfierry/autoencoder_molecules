@@ -169,4 +169,23 @@ class MoleculeVisualization:
 
 
 
+def main():
+    # Iniciar o cronômetro
+    start_time = time.time()
+
+    print('Iniciando...')
+
+    chembl_file_path = './filtered_chembl33_Kd_Ki.tsv'
+    pkidb_file_path = './smiles_from_pkidb_to_rdkit.tsv'
+    chembl_embeddings_path = './chembl_Kd_Ki_embeddings.npy'
+    output_file_path = './similar_molecules_cos_similarity.tsv'
+    threshold = 0.8
+
+    print("Usando o dispositivo:", device)
+
+    # Inicializar o localizador de similaridade
+    similarity_finder = MoleculeSimilarityFinder(chembl_file_path, pkidb_file_path, device)
+
+
+
 
