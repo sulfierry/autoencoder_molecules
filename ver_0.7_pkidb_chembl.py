@@ -234,5 +234,5 @@ def main():
     print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
 
 
-
-
+if __name__ == "__main__":
+    main()
