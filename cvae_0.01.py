@@ -50,3 +50,49 @@ def smiles_to_token_ids(smiles, tokenizer):
 # Função para converter token IDs em SMILES
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids[0], skip_special_tokens=True)
+
+def train_cvae(cvae, dataloader, optimizer, num_epochs, log_interval):
+    # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
+    for param in cvae.encoder.parameters():
+        param.requires_grad = False
+
+    # Ajuste fino apenas dos parâmetros do decoder e da camada de reparametrização
+    for param in cvae.decoder.parameters():
+        param.requires_grad = True
+    for param in cvae.fc_mu.parameters():
+        param.requires_grad = True
+    for param in cvae.fc_var.parameters():
+        param.requires_grad = True
+
+    scaler = GradScaler()  # Inicializa o GradScaler para precisão mista
+
+    cvae.train()
+    for epoch in range(num_epochs):
+        train_loss = 0
+        for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
+            batch_size = input_ids.size(0)  # Armazena o tamanho do lote
+            input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+
+            optimizer.zero_grad()
+
+            # Usando precisão mista
+            with autocast():
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                loss = loss_function(recon_batch, input_ids, mu, logvar)
+
+            # Backpropagation com ajuste fino
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            # Liberação explícita de memória
+            del input_ids, attention_mask, recon_batch, mu, logvar
+            torch.cuda.empty_cache()
+
+            train_loss += loss.item()
+            if batch_idx % log_interval == 0:
+                print(f'Train Epoch: {epoch} [{batch_idx * batch_size}/{len(dataloader.dataset)} ({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / batch_size:.6f}')
+
+        # Log da perda média após cada época
+        print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+
