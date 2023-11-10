@@ -96,3 +96,16 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, log_interval):
         # Log da perda média após cada época
         print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
 
+
+# Função para gerar moléculas com o modelo
+def generate_molecule(cvae, z, tokenizer):
+    cvae.eval()
+    with torch.no_grad():
+        # Assumimos que z é um batch de vetores latentes
+        recon_smiles_logits = cvae.decode(z)
+        # Aqui precisamos converter logits para SMILES reais, o que pode ser um processo complexo
+        # que envolve a escolha do melhor caminho através dos logits. Um exemplo simplificado seria:
+        recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
+        # Vamos decodificar o primeiro exemplo do batch
+        recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
+        return recon_smiles_decoded
