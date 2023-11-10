@@ -40,3 +40,13 @@ def loss_function(recon_x, x, mu, logvar):
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
     return CE + KLD
+
+
+# Função para converter SMILES em token IDs
+def smiles_to_token_ids(smiles, tokenizer):
+    tokens = tokenizer(smiles, return_tensors='pt', padding=True, truncation=True)
+    return tokens['input_ids'], tokens['attention_mask']
+
+# Função para converter token IDs em SMILES
+def token_ids_to_smiles(token_ids, tokenizer):
+    return tokenizer.decode(token_ids[0], skip_special_tokens=True)
