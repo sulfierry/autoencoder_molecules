@@ -25,3 +25,18 @@ class SmilesDataset(Dataset):
         smile = self.data.iloc[idx]['Canonical_Smiles']
         inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
         return inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
+
+def loss_function(recon_x, x, mu, logvar):
+    # Verifique se recon_x tem três dimensões. Se não, algo está errado.
+    if recon_x.dim() != 3:
+        raise ValueError(f"recon_x should be 3-dimensional (batch_size, sequence_length, num_classes), but got shape {recon_x.shape}")
+
+    # Flatten os logits e os índices de classe para passar para a cross_entropy.
+    # A função cross_entropy espera logits no formato (batch_size * sequence_length, num_classes)
+    # e índices de classe no formato (batch_size * sequence_length).
+    CE = nn.functional.cross_entropy(recon_x.view(-1, recon_x.size(2)), x.view(-1), reduction='sum')
+
+    # Cálculo da Divergência KL
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+    return CE + KLD
