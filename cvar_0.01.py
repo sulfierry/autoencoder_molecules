@@ -9,9 +9,6 @@ from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Dataset
 from transformers import RobertaTokenizer, RobertaModel
 
-
-# Assumindo que as classes e funções auxiliares foram definidas conforme o esboço anterior...
-# Aqui, vamos definir o Dataset que carregará os dados do PKIDB e preparará os inputs para o CVAE
 # Correções na classe SmilesDataset
 class SmilesDataset(Dataset):
     def __init__(self, file_path, tokenizer, max_length=512):
@@ -26,6 +23,7 @@ class SmilesDataset(Dataset):
         smile = self.data.iloc[idx]['Canonical_Smiles']
         inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
         return inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
+
 
 def loss_function(recon_x, x, mu, logvar):
     # Verifique se recon_x tem três dimensões. Se não, algo está errado.
