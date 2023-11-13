@@ -49,6 +49,8 @@ def smiles_to_token_ids(smiles, tokenizer):
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids[0], skip_special_tokens=True)
 
+import matplotlib.pyplot as plt
+
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
     for param in cvae.encoder.parameters():
@@ -65,6 +67,7 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
     scaler = GradScaler()  # Inicializa o GradScaler para precisão mista
 
     cvae.train()
+    epoch_losses = []  # Lista para armazenar a perda de cada época
     for epoch in range(num_epochs):
         train_loss = 0
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
@@ -93,8 +96,22 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
             if batch_idx % log_interval == 0:
                 print(f'Train Epoch: {epoch} [{batch_idx * batch_size}/{len(dataloader.dataset)} ({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / batch_size:.6f}')
 
-        # Log da perda média após cada época
-        print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+        epoch_loss = train_loss / len(dataloader.dataset)
+        epoch_losses.append(epoch_loss)  # Armazenar a perda da época atual
+        print(f'====> Epoch: {epoch} Average loss: {epoch_loss:.4f}')
+
+    # Plotar o gráfico de perda por época
+    plt.figure(figsize=(10, 6))
+    plt.plot(epoch_losses, label='Training Loss')
+    plt.title('Loss vs. Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return epoch_losses  # Retorna as perdas por época, caso necessário
+
 
 
 
