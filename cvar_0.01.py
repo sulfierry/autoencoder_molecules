@@ -207,6 +207,8 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=10, ba
 
     # Treina o CVAE
     train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
+    epoch_losses = train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
+
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids(smiles_input, tokenizer)
