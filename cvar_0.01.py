@@ -111,6 +111,60 @@ def generate_molecule(cvae, z, tokenizer):
         recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
         return recon_smiles_decoded
 
+class CVAE(nn.Module):
+    def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
+        super(CVAE, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
+
+        self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
+        self.fc_var = nn.Linear(self.encoder.config.hidden_size, latent_dim)
+
+        self.max_sequence_length = max_sequence_length
+        self.vocab_size = vocab_size
+
+        # Tamanho de saída para o decodificador
+        decoder_output_size = max_sequence_length * vocab_size
+        print(f"Decoder output size: {decoder_output_size}")
+
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, self.encoder.config.hidden_size),
+            nn.ReLU(),
+            nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
+            nn.Unflatten(1, (max_sequence_length, vocab_size)),
+            nn.LogSoftmax(dim=-1)
+        )
+
+    def encode(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids, attention_mask=attention_mask)
+        last_hidden_states = outputs.last_hidden_state
+        pooled_output = torch.mean(last_hidden_states, dim=1)
+        mu = self.fc_mu(pooled_output)
+        log_var = self.fc_var(pooled_output)
+        return mu, log_var
+
+    def reparameterize(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def decode(self, z):
+        output = self.decoder[0:3](z)
+        print("Shape before unflatten:", output.shape)
+        # Remover uma dimensão extra se ela existir
+        if output.dim() > 2:
+            output = output.squeeze(1)
+            print("Shape after squeeze:", output.shape)
+        if output.shape[-1] != self.max_sequence_length * self.vocab_size:
+            raise RuntimeError(f"Incorrect shape before unflatten. Got {output.shape}, expected last dimension to be {self.max_sequence_length * self.vocab_size}")
+        return self.decoder[3:](output)
+
+
+    def forward(self, input_ids, attention_mask):
+        mu, log_var = self.encode(input_ids, attention_mask)
+        z = self.reparameterize(mu, log_var)
+        return self.decode(z), mu, log_var
+
 
 
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
