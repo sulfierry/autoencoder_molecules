@@ -166,10 +166,8 @@ class CVAE(nn.Module):
         return self.decode(z), mu, log_var
 
 
-
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
 # Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
-
 def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=10, batch_size=32):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -191,7 +189,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=10, ba
     optimizer = optim.Adam(cvae.parameters(), lr=1e-3)
 
     # Treina o CVAE
-    train_cvae(cvae, dataloader, optimizer, num_epochs, log_interval=10)
+    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids(smiles_input, tokenizer)
