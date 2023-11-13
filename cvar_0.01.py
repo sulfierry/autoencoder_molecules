@@ -49,7 +49,7 @@ def smiles_to_token_ids(smiles, tokenizer):
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids[0], skip_special_tokens=True)
 
-def train_cvae(cvae, dataloader, optimizer, num_epochs, log_interval):
+def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
     for param in cvae.encoder.parameters():
         param.requires_grad = False
@@ -71,58 +71,13 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, log_interval):
             batch_size = input_ids.size(0)  # Armazena o tamanho do lote
             input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
 
-
-class CVAE(nn.Module):
-    def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
-        super(CVAE, self).__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
-
-        self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
-        self.fc_var = nn.Linear(self.encoder.config.hidden_size, latent_dim)
-
-        # Calcula o tamanho de saída correto para a camada linear do decoder
-        decoder_output_size = max_sequence_length * vocab_size
-        print(f"Decoder output size: {decoder_output_size}")
-
-        self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, self.encoder.config.hidden_size),
-            nn.ReLU(),
-            nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
-            nn.Unflatten(1, (max_sequence_length, vocab_size)),
-            nn.LogSoftmax(dim=-1)
-        )
-
-    def encode(self, input_ids, attention_mask):
-        outputs = self.encoder(input_ids, attention_mask=attention_mask)
-        last_hidden_states = outputs.last_hidden_state
-        pooled_output = torch.mean(last_hidden_states, dim=1)
-        mu = self.fc_mu(pooled_output)
-        log_var = self.fc_var(pooled_output)
-        return mu, log_var
-
-    def reparameterize(self, mu, log_var):
-        std = torch.exp(0.5 * log_var)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-
-    def decode(self, z):
-        output = self.decoder[0:3](z)
-        print("Shape before unflatten:", output.shape)
-        return self.decoder[3:](output)
-
-    def forward(self, input_ids, attention_mask):
-        mu, log_var = self.encode(input_ids, attention_mask)
-        z = self.reparameterize(mu, log_var)
-        recon = self.decode(z)
-        print("Shape after decode:", recon.shape)
-        return recon, mu, log_var
-
             optimizer.zero_grad()
 
             # Usando precisão mista
             with autocast():
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                if recon_batch.shape[1:] != (input_ids.size(1), tokenizer.vocab_size):
+                    raise ValueError(f"Output shape is {recon_batch.shape}, but expected shape is [{batch_size}, {input_ids.size(1)}, {tokenizer.vocab_size}]")
                 loss = loss_function(recon_batch, input_ids, mu, logvar)
 
             # Backpropagation com ajuste fino
@@ -140,6 +95,7 @@ class CVAE(nn.Module):
 
         # Log da perda média após cada época
         print(f'====> Epoch: {epoch} Average loss: {train_loss / len(dataloader.dataset):.4f}')
+
 
 
 # Função para gerar moléculas com o modelo
