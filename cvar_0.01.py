@@ -24,7 +24,6 @@ class SmilesDataset(Dataset):
         inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
         return inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
 
-
 def loss_function(recon_x, x, mu, logvar):
     # Verifique se recon_x tem três dimensões. Se não, algo está errado.
     if recon_x.dim() != 3:
