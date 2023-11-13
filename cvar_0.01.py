@@ -112,6 +112,7 @@ def generate_molecule(cvae, z, tokenizer):
         return recon_smiles_decoded
 
 
+
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
 # Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
 
