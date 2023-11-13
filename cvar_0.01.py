@@ -185,12 +185,12 @@ class CVAE(nn.Module):
 
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
 # Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
-def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=10, batch_size=32):
+def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=25, batch_size=32):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Tokenizador e modelo pré-treinado são carregados
     tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
-    vocab_size = tokenizer.vocab_size  # Obtenha o tamanho do vocabulário do tokenizador
+    vocab_size = tokenizer.vocab_size
 
     # Instancia o CVAE com o modelo pré-treinado, dimensão latente e tamanho do vocabulário
     cvae = CVAE(pretrained_model_name=pretrained_model_name, 
@@ -207,13 +207,11 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=10, ba
 
     # Treina o CVAE
     train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
-    epoch_losses = train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
-
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids(smiles_input, tokenizer)
     input_ids, attention_mask = input_ids.to(device), attention_mask.to(device)
-    z = cvae.encode(input_ids, attention_mask)[0]  # Obtem apenas o mu (média) do espaço latente
+    z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
     generated_smile = generate_molecule(cvae, z, tokenizer)
 
