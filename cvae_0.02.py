@@ -40,10 +40,12 @@ def loss_function(recon_x, x, mu, logvar):
     return CE + KLD
 
 
-# Função para converter SMILES em token IDs
-def smiles_to_token_ids(smiles, tokenizer):
-    tokens = tokenizer(smiles, return_tensors='pt', padding=True, truncation=True)
-    return tokens['input_ids'], tokens['attention_mask']
+def smiles_to_token_ids_parallel(smiles_list, tokenizer):
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(tokenizer, smile, return_tensors='pt', padding=True, truncation=True) for smile in smiles_list]
+        results = [future.result() for future in as_completed(futures)]
+    return [res['input_ids'] for res in results], [res['attention_mask'] for res in results]
+
 
 # Função para converter token IDs em SMILES
 def token_ids_to_smiles(token_ids, tokenizer):
