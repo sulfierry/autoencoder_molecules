@@ -60,8 +60,7 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
 # Função para converter token IDs em SMILES
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids[0], skip_special_tokens=True)
-
-import matplotlib.pyplot as plt
+	
 
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
@@ -80,19 +79,21 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
 
     cvae.train()
     epoch_losses = []  # Lista para armazenar a perda de cada época
+
+    # Inicializar DataFrame para armazenar dados de perda
+    loss_data = pd.DataFrame(columns=['Epoch', 'Loss'])
+
     for epoch in range(num_epochs):
         train_loss = 0
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
-            batch_size = input_ids.size(0)  # Armazena o tamanho do lote
-            input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+            batch_size = input_ids.size(0)
+            input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
 
             optimizer.zero_grad()
 
             # Usando precisão mista
             with autocast():
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
-                if recon_batch.shape[1:] != (input_ids.size(1), tokenizer.vocab_size):
-                    raise ValueError(f"Output shape is {recon_batch.shape}, but expected shape is [{batch_size}, {input_ids.size(1)}, {tokenizer.vocab_size}]")
                 loss = loss_function(recon_batch, input_ids, mu, logvar)
 
             # Backpropagation com ajuste fino
@@ -100,17 +101,19 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
             scaler.step(optimizer)
             scaler.update()
 
-            # Liberação explícita de memória
-            del input_ids, attention_mask, recon_batch, mu, logvar
-            torch.cuda.empty_cache()
-
             train_loss += loss.item()
-            #if batch_idx % log_interval == 0:
-               # print(f'Train Epoch: {epoch} [{batch_idx * batch_size}/{len(dataloader.dataset)} ({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / batch_size:.6f}')
 
         epoch_loss = train_loss / len(dataloader.dataset)
-        epoch_losses.append(epoch_loss)  # Armazenar a perda da época atual
+        epoch_losses.append(epoch_loss)
+
+        # Atualizar DataFrame com novos dados
+        new_row = pd.DataFrame({'Epoch': [epoch], 'Loss': [epoch_loss]})
+        loss_data = pd.concat([loss_data, new_row], ignore_index=True)
+
         print(f'====> Epoch: {epoch} Average loss: {epoch_loss:.4f}')
+
+    # Salvar dados de perda em um arquivo CSV
+    loss_data.to_csv('loss_data.csv', index=False)
 
     # Plotar o gráfico de perda por época
     plt.figure(figsize=(10, 6))
@@ -124,10 +127,7 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
     plt.savefig('loss_epochs.png')
     plt.close()
 
-    return epoch_losses  # Retorna as perdas por época, caso necessário
-
-
-
+    return epoch_losses
 
 # Função para gerar moléculas com o modelo
 def generate_molecule(cvae, z, tokenizer):
