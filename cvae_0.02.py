@@ -16,6 +16,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
 EPOCHS = 5000
+BATCH_SIZE = 128
+LEARNING_RATE = 1e-3
 
 # Correções na classe SmilesDataset
 class SmilesDataset(Dataset):
