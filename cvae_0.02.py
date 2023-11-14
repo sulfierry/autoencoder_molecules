@@ -197,9 +197,11 @@ class CVAE(nn.Module):
 
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
 # Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
-def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=400, batch_size=32):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=32):
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    start_time = time.time()
+    
     # Tokenizador e modelo pré-treinado são carregados
     tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
     vocab_size = tokenizer.vocab_size
@@ -212,16 +214,19 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=400, b
 
     # Prepara o dataset e o dataloader
     dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_CPUS)
 
     # Configura o otimizador
-    optimizer = optim.Adamax(cvae.parameters(), lr=1e-3)
+
+    optimizer = optim.RMSprop(cvae.parameters(), lr=1e-3)
+    #optimizer = optim.NAdam(cvae.parameters(), lr=1e-3)
+    #optimizer = optim.AdamW(cvae.parameters(), lr=1e-3)
 
     # Treina o CVAE
     train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
 
     # Gera uma nova molécula
-    input_ids, attention_mask = smiles_to_token_ids(smiles_input, tokenizer)
+    input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
     input_ids, attention_mask = input_ids.to(device), attention_mask.to(device)
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
@@ -231,7 +236,11 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=400, b
     torch.save(cvae.state_dict(), 'cvae_finetuned.pth')
 	
     print(f"Generated SMILES: {generated_smile}")
-    
+
+    # Parar o cronômetro e imprimir o tempo total
+    end_time = time.time()
+    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")   
+ 
     # Liberação de memória da GPU
     del cvae
     torch.cuda.empty_cache()
