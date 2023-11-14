@@ -143,7 +143,7 @@ def generate_molecule(cvae, z, tokenizer):
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
         super(CVAE, self).__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
 
         self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
