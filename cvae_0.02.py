@@ -49,7 +49,7 @@ def loss_function(recon_x, x, mu, logvar):
 
 
 def smiles_to_token_ids_parallel(smiles_list, tokenizer):
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=NUM_CPUS) as executor:
         futures = [executor.submit(tokenizer, smile, return_tensors='pt', padding=True, truncation=True) for smile in smiles_list]
         results = [future.result() for future in as_completed(futures)]
     return [res['input_ids'] for res in results], [res['attention_mask'] for res in results]
