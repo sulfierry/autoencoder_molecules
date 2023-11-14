@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import RobertaTokenizer, RobertaModel
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
 EPOCHS = 5000
 BATCH_SIZE = 128
@@ -51,6 +51,7 @@ def loss_function(recon_x, x, mu, logvar):
 
 
 def smiles_to_token_ids_parallel(smiles_list, tokenizer):
+
     with ThreadPoolExecutor(max_workers=NUM_CPUS) as executor:
         futures = [executor.submit(tokenizer, smile, return_tensors='pt', padding=True, truncation=True) for smile in smiles_list]
         results = [future.result() for future in as_completed(futures)]
@@ -60,7 +61,6 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
 # Função para converter token IDs em SMILES
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids[0], skip_special_tokens=True)
-	
 
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
@@ -129,6 +129,7 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
 
     return epoch_losses
 
+
 # Função para gerar moléculas com o modelo
 def generate_molecule(cvae, z, tokenizer):
     cvae.eval()
@@ -145,7 +146,7 @@ def generate_molecule(cvae, z, tokenizer):
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
         super(CVAE, self).__init__()
-        self.device = device
+        self.DEVICE = DEVICE
         self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
 
         self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
@@ -199,9 +200,8 @@ class CVAE(nn.Module):
 
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
 # Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
-def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=32):
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE):
+    
     start_time = time.time()
     
     # Tokenizador e modelo pré-treinado são carregados
@@ -212,15 +212,15 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     cvae = CVAE(pretrained_model_name=pretrained_model_name, 
                 latent_dim=256, 
                 vocab_size=vocab_size, 
-                max_sequence_length=tokenizer.model_max_length).to(device)
+                max_sequence_length=tokenizer.model_max_length).to(DEVICE)
 
     # Prepara o dataset e o dataloader
     dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_CPUS)
 
     # Configura o otimizador
-
-    optimizer = optim.RMSprop(cvae.parameters(), lr=1e-3)
+    optimizer = optim.Adam(cvae.parameters(), lr=LEARNING_RATE)
+    #optimizer = optim.RMSprop(cvae.parameters(), lr=1e-3)
     #optimizer = optim.NAdam(cvae.parameters(), lr=1e-3)
     #optimizer = optim.AdamW(cvae.parameters(), lr=1e-3)
 
@@ -229,7 +229,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
-    input_ids, attention_mask = input_ids.to(device), attention_mask.to(device)
+    input_ids, attention_mask = input_ids.to(DEVICE), attention_mask.to(DEVICE)
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
     generated_smile = generate_molecule(cvae, z, tokenizer)
