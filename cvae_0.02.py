@@ -142,6 +142,8 @@ def generate_molecule(cvae, z, tokenizer):
     with torch.no_grad():
         # Assumimos que z é um batch de vetores latentes
         recon_smiles_logits = cvae.decode(z)
+        print(f"Logits: {recon_smiles_logits}")  # Imprime os logits
+
     
         # Verificação adicional
         if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != cvae.max_sequence_length:
@@ -265,6 +267,11 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     # Parar o cronômetro e imprimir o tempo total
     end_time = time.time()
     print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
+
+    # Após o treinamento
+    test_z = torch.randn(1, LATENT_DIM).to(device)  # Gera um vetor latente aleatório
+    test_smile = generate_molecule(cvae, test_z, tokenizer)
+    print(f"Test SMILES: {test_smile}")
 
     # Liberação de memória da GPU
     del cvae
