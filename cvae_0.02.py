@@ -194,17 +194,20 @@ class CVAE(nn.Module):
     def decode(self, z):
         output = self.decoder[:3](z)  # Processamento até a última camada linear
     
-        # Verifica se a forma do tensor é a esperada e ajusta se necessário
+        # Verifica se a forma do tensor é a esperada (2D) e ajusta se necessário
         if output.dim() == 2:
-            # Redimensiona de [batch_size, max_sequence_length * vocab_size] para [batch_size, max_sequence_length, vocab_size]
+            # Recria o tensor como 3D [batch_size, max_sequence_length, vocab_size]
             output = output.view(-1, self.max_sequence_length, self.vocab_size)
         else:
             # Se a forma do tensor não for a esperada, levanta um erro
             raise RuntimeError(f"Incorrect output shape before reshape. Expected 2 dimensions, got {output.dim()}")
     
         print(f"Output shape before unflatten: {output.shape}")
-        output = self.decoder[3:](output)  # Continuação do processamento
+    
+        # Passa o tensor recriado através do restante do decodificador
+        output = self.decoder[3:](output)
         return output
+    
 
 
 
