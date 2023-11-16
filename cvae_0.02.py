@@ -190,21 +190,17 @@ class CVAE(nn.Module):
         std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
         return mu + eps * std
-
+    
     def decode(self, z):
-        # Processamento inicial
-        output = self.decoder[:3](z)
-        
-        # Log para verificar a forma do tensor antes de unflatten
-        print(f"Shape before unflatten: {output.shape}")
+        output = self.decoder[:3](z)  # Processamento até a última camada linear
     
-        # Camada Unflatten
+        # Verificar o tamanho da saída da última camada linear
+        print(f"Output shape after linear layer: {output.shape}")
+    
+        # Continuação do processamento
         output = self.decoder[3:](output)
-    
-        # Verificação final
-        if output.shape[-2:] != (self.max_sequence_length, self.vocab_size):
-            raise RuntimeError(f"Incorrect output shape. Got {output.shape[-2:]}, expected ({self.max_sequence_length}, {self.vocab_size})")
         return output
+
 
 
     def forward(self, input_ids, attention_mask):
