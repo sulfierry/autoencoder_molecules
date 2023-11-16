@@ -19,6 +19,10 @@ EPOCHS = 5000
 BATCH_SIZE = 128
 LEARNING_RATE = 1e-3
 LATENT_DIM = 512
+WEIGHT_DECAY = 1e-5
+LOG_INTERVAL = 10
+
+
 # Correções na classe SmilesDataset
 class SmilesDataset(Dataset):
     def __init__(self, file_path, tokenizer, max_length=512):
@@ -221,7 +225,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     optimizer = optim.Adam(cvae.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
     # Treina o CVAE
-    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
+    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=LOG_INTERVAL)
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
