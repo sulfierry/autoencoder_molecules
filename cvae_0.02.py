@@ -181,13 +181,19 @@ class CVAE(nn.Module):
 
     def decode(self, z):
         output = self.decoder[0:3](z)
-       # print("Shape before unflatten:", output.shape)
+        
         # Remover uma dimensão extra se ela existir
         if output.dim() > 2:
             output = output.squeeze(1)
-            print("Shape after squeeze:", output.shape)
-        if output.shape[-1] != self.max_sequence_length * self.vocab_size:
-            raise RuntimeError(f"Incorrect shape before unflatten. Got {output.shape}, expected last dimension to be {self.max_sequence_length * self.vocab_size}")
+    
+        # Certifique-se de que a última dimensão do tensor de saída seja igual ao produto do comprimento da sequência e do tamanho do vocabulário
+        expected_dim = self.max_sequence_length * self.vocab_size
+        if output.shape[-1] != expected_dim:
+            raise RuntimeError(f"Incorrect shape before unflatten. Got {output.shape}, expected last dimension to be {expected_dim}")
+    
+        # Ajustar a operação unflatten para corresponder à saída esperada
+        output = output.view(-1, self.max_sequence_length, self.vocab_size)
+    
         return self.decoder[3:](output)
 
 
