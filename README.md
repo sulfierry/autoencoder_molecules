@@ -28,3 +28,9 @@ The code is designed to identify similar molecules between two distinct datasets
 - **pandas**
 - **torch**
 - **sklearn**
+
+- 
+# CVAE for SMILES Molecular Structures Generation (cvae_0.02.py)
+
+This project implements a Conditional Variational Autoencoder (CVAE) for generating molecular structures using the SMILES (Simplified Molecular Input Line Entry System) format. The model utilizes RoBERTa, a pre-trained language model, as the base for the encoder, and a custom decoder.
+
