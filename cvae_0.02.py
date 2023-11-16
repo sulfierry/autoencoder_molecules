@@ -68,7 +68,7 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
 
 # Função para converter token IDs em SMILES
 def token_ids_to_smiles(token_ids, tokenizer):
-    return tokenizer.decode(token_ids[0], skip_special_tokens=True)
+    return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
 
 
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
