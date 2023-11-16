@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
-EPOCHS = 5
+EPOCHS = 3
 BATCH_SIZE = 8  # 32
 LATENT_DIM = 4 # 256
 WEIGHT_DECAY = 1e-5 # regularizacao L2
@@ -194,11 +194,17 @@ class CVAE(nn.Module):
     def decode(self, z):
         output = self.decoder[:3](z)  # Processamento até a última camada linear
     
-        # Remover a dimensão extra se houver
-        if output.dim() == 3 and output.shape[1] == 1:
-            output = output.squeeze(1)
+        # Verifica se a forma do tensor é a esperada e ajusta se necessário
+        if output.dim() == 3:
+            if output.shape[1] == 1:
+                # Remove a dimensão extra se o tensor for do tipo [batch_size, 1, features]
+                output = output.squeeze(1)
+            elif output.shape[1] != self.max_sequence_length:
+                # Se a segunda dimensão não corresponder ao comprimento da sequência esperado
+                raise RuntimeError(f"Unexpected shape. Expected second dimension to be {self.max_sequence_length}, but got {output.shape[1]}")
         elif output.dim() != 2:
-            raise RuntimeError(f"Incorrect output shape before unflatten. Expected 2 dimensions, got {output.dim()}")
+            # Se não for nem 2D nem 3D com a segunda dimensão igual a 1
+            raise RuntimeError(f"Incorrect output shape before unflatten. Expected 2 or 3 dimensions, got {output.dim()}")
     
         print(f"Output shape before unflatten: {output.shape}")
         output = self.decoder[3:](output)  # Continuação do processamento
