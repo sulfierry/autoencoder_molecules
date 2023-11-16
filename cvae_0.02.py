@@ -13,15 +13,13 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import RobertaTokenizer, RobertaModel
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
-EPOCHS = 5000
-BATCH_SIZE = 128
-LEARNING_RATE = 1e-3
-LATENT_DIM = 512
-WEIGHT_DECAY = 1e-5
-LOG_INTERVAL = 10
-
+EPOCHS = 5
+BATCH_SIZE = 8  # 32
+LATENT_DIM = 4 # 256
+WEIGHT_DECAY = 1e-5 # regularizacao L2
+LEARNING_RATE = 1e-3 # Otimizador
 
 # Correções na classe SmilesDataset
 class SmilesDataset(Dataset):
@@ -66,6 +64,7 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids[0], skip_special_tokens=True)
 
+
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
     for param in cvae.encoder.parameters():
@@ -83,21 +82,19 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
 
     cvae.train()
     epoch_losses = []  # Lista para armazenar a perda de cada época
-
-    # Inicializar DataFrame para armazenar dados de perda
-    loss_data = pd.DataFrame(columns=['Epoch', 'Loss'])
-
     for epoch in range(num_epochs):
         train_loss = 0
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
-            batch_size = input_ids.size(0)
-            input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+            batch_size = input_ids.size(0)  # Armazena o tamanho do lote
+            input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
 
             optimizer.zero_grad()
 
             # Usando precisão mista
             with autocast():
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                if recon_batch.shape[1:] != (input_ids.size(1), tokenizer.vocab_size):
+                    raise ValueError(f"Output shape is {recon_batch.shape}, but expected shape is [{batch_size}, {input_ids.size(1)}, {tokenizer.vocab_size}]")
                 loss = loss_function(recon_batch, input_ids, mu, logvar)
 
             # Backpropagation com ajuste fino
@@ -107,17 +104,13 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
 
             train_loss += loss.item()
 
+            # Registro de progresso
+            if batch_idx % log_interval == 0:
+                print(f'Train Epoch: {epoch} [{batch_idx * batch_size}/{len(dataloader.dataset)} ({100. * batch_idx / len(dataloader):.0f}%)]\tLoss: {loss.item() / batch_size:.6f}')
+
         epoch_loss = train_loss / len(dataloader.dataset)
         epoch_losses.append(epoch_loss)
-
-        # Atualizar DataFrame com novos dados
-        new_row = pd.DataFrame({'Epoch': [epoch], 'Loss': [epoch_loss]})
-        loss_data = pd.concat([loss_data, new_row], ignore_index=True)
-
         print(f'====> Epoch: {epoch} Average loss: {epoch_loss:.4f}')
-
-    # Salvar dados de perda em um arquivo CSV
-    loss_data.to_csv('loss_data.csv', index=False)
 
     # Plotar o gráfico de perda por época
     plt.figure(figsize=(10, 6))
@@ -132,6 +125,7 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
     plt.close()
 
     return epoch_losses
+
 
 
 # Função para gerar moléculas com o modelo
@@ -150,7 +144,7 @@ def generate_molecule(cvae, z, tokenizer):
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
         super(CVAE, self).__init__()
-        self.DEVICE = DEVICE
+        self.device = device
         self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
 
         self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
@@ -165,6 +159,7 @@ class CVAE(nn.Module):
 
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, self.encoder.config.hidden_size),
+            #nn.LayerNorm(self.encoder.config.hidden_size),  # Layer normalization
             nn.ReLU(),
             nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
             nn.Unflatten(1, (max_sequence_length, vocab_size)),
@@ -205,6 +200,8 @@ class CVAE(nn.Module):
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
 # Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
 def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE):
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     start_time = time.time()
 
     # Tokenizador e modelo pré-treinado são carregados
@@ -215,7 +212,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     cvae = CVAE(pretrained_model_name=pretrained_model_name,
                 latent_dim=LATENT_DIM,
                 vocab_size=vocab_size,
-                max_sequence_length=tokenizer.model_max_length).to(DEVICE)
+                max_sequence_length=tokenizer.model_max_length).to(device)
 
     # Prepara o dataset e o dataloader
     dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
@@ -223,18 +220,21 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     # Configura o otimizador
     optimizer = optim.Adam(cvae.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    #optimizer = optim.RMSprop(cvae.parameters(), lr=1e-3)
+    #optimizer = optim.NAdam(cvae.parameters(), lr=1e-3)
+    #optimizer = optim.AdamW(cvae.parameters(), lr=1e-3)
 
     # Treina o CVAE
-    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=LOG_INTERVAL)
+    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
 
     # Corrigindo o erro - Convertendo listas em tensores e movendo para o dispositivo adequado
-    input_ids_tensor = torch.cat(input_ids).to(DEVICE)
-    attention_mask_tensor = torch.cat(attention_mask).to(DEVICE)
+    input_ids = torch.cat(input_ids).to(device)
+    attention_mask = torch.cat(attention_mask).to(device)
 
-    z = cvae.encode(input_ids_tensor, attention_mask_tensor)[0]  # Obtém apenas o mu (média) do espaço latente
+    z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
     generated_smile = generate_molecule(cvae, z, tokenizer)
 
