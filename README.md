@@ -71,4 +71,6 @@ The model encodes SMILES inputs using RoBERTa, creates a latent space, and decod
 - Install required dependencies.
 - Run the script with appropriate dataset and parameters.
 
+## Contributing
 
+Contributions to improve the model or extend its functionalities are welcome. Please follow the standard pull request process for contributions.
