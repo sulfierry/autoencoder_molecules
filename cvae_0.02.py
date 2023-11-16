@@ -189,12 +189,13 @@ class CVAE(nn.Module):
         # Certifique-se de que a última dimensão do tensor de saída seja igual ao produto do comprimento da sequência e do tamanho do vocabulário
         expected_dim = self.max_sequence_length * self.vocab_size
         if output.shape[-1] != expected_dim:
-            raise RuntimeError(f"Incorrect shape before unflatten. Got {output.shape}, expected last dimension to be {expected_dim}")
+            raise RuntimeError(f"Incorrect shape before view. Got {output.shape}, expected last dimension to be {expected_dim}")
     
-        # Ajustar a operação unflatten para corresponder à saída esperada
+        # Redimensionar o tensor para as dimensões corretas antes de passar pela última parte do decodificador
         output = output.view(-1, self.max_sequence_length, self.vocab_size)
     
         return self.decoder[3:](output)
+
 
 
     def forward(self, input_ids, attention_mask):
