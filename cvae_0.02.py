@@ -195,20 +195,17 @@ class CVAE(nn.Module):
         output = self.decoder[:3](z)  # Processamento até a última camada linear
     
         # Verifica se a forma do tensor é a esperada e ajusta se necessário
-        if output.dim() == 3:
-            if output.shape[1] == 1:
-                # Remove a dimensão extra se o tensor for do tipo [batch_size, 1, features]
-                output = output.squeeze(1)
-            elif output.shape[1] != self.max_sequence_length:
-                # Se a segunda dimensão não corresponder ao comprimento da sequência esperado
-                raise RuntimeError(f"Unexpected shape. Expected second dimension to be {self.max_sequence_length}, but got {output.shape[1]}")
-        elif output.dim() != 2:
-            # Se não for nem 2D nem 3D com a segunda dimensão igual a 1
-            raise RuntimeError(f"Incorrect output shape before unflatten. Expected 2 or 3 dimensions, got {output.dim()}")
+        if output.dim() == 2:
+            # Redimensiona de [batch_size, max_sequence_length * vocab_size] para [batch_size, max_sequence_length, vocab_size]
+            output = output.view(-1, self.max_sequence_length, self.vocab_size)
+        else:
+            # Se a forma do tensor não for a esperada, levanta um erro
+            raise RuntimeError(f"Incorrect output shape before reshape. Expected 2 dimensions, got {output.dim()}")
     
         print(f"Output shape before unflatten: {output.shape}")
         output = self.decoder[3:](output)  # Continuação do processamento
         return output
+
 
 
     def forward(self, input_ids, attention_mask):
