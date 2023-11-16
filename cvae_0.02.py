@@ -169,19 +169,18 @@ def postprocess_smiles(generated_smiles, reference_smile):
     ref_mol = Chem.MolFromSmiles(reference_smile)
 
     for smile in generated_smiles:
-        mol = Chem.MolFromSmiles(smile)
-        if mol is not None:
-            # Tente otimizar a geometria baseando-se na molécula de referência
-            try:
+        try:
+            mol = Chem.MolFromSmiles(smile)
+            if mol is not None:
                 AllChem.AlignMol(mol, ref_mol)
                 corrected_smiles.append(Chem.MolToSmiles(mol))
-            except:
-                corrected_smiles.append(smile)
-        else:
-            # Se o SMILES for inválido, mantenha o original (ou você pode optar por excluir)
-            corrected_smiles.append(smile)
+            else:
+                corrected_smiles.append("Invalid SMILES")
+        except:
+            corrected_smiles.append("Error in Parsing")
 
     return corrected_smiles
+
     
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
@@ -277,7 +276,14 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
-    generated_smile = generate_molecule(cvae, z, tokenizer)
+    
+    generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
+
+    # Pós-processamento e validação de SMILES
+    processed_smiles = postprocess_smiles([generated_smile], smiles_input)
+
+    # Salvar em CSV
+    pd.DataFrame({'Generated_SMILES': processed_smiles}).to_csv('generated_molecules.csv', index=False)
 
     # Salvar o estado do dicionário do modelo
     torch.save(cvae.state_dict(), 'cvae_finetuned.pth')
