@@ -192,14 +192,21 @@ class CVAE(nn.Module):
         return mu + eps * std
         
     def decode(self, z):
-        output = self.decoder(z)
-        # Adicione a remodelagem aqui
-        output = output.view(-1, self.max_sequence_length, self.vocab_size)
-        # LogSoftmax já está sendo aplicado no nn.Sequential
-        return output
+        output = self.decoder[:3](z)  # Processamento até a última camada linear
     
-        
-
+        # Verifica se a forma do tensor é a esperada (2D) e ajusta se necessário
+        if output.dim() == 2:
+            # Recria o tensor como 3D [batch_size, max_sequence_length, vocab_size]
+            output = output.view(-1, self.max_sequence_length, self.vocab_size)
+        else:
+            # Se a forma do tensor não for a esperada, levanta um erro
+            raise RuntimeError(f"Incorrect output shape before reshape. Expected 2 dimensions, got {output.dim()}")
+    
+        print(f"Output shape before reshape: {output.shape}")
+    
+        # Continua o processamento com o tensor recriado
+        output = self.decoder[3:](output)
+        return output
 
 
     def forward(self, input_ids, attention_mask):
