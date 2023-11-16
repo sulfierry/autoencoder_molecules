@@ -34,3 +34,11 @@ The code is designed to identify similar molecules between two distinct datasets
 
 This project implements a Conditional Variational Autoencoder (CVAE) for generating molecular structures using the SMILES (Simplified Molecular Input Line Entry System) format. The model utilizes RoBERTa, a pre-trained language model, as the base for the encoder, and a custom decoder.
 
+
+## Key Components
+
+- `SmilesDataset`: Class for reading and processing SMILES data.
+- `CVAE`: The core model with methods for encoding, reparameterization, and decoding.
+- `train_cvae`: Function to train the CVAE.
+- `generate_molecule`: Function to generate new molecular structures.
+
