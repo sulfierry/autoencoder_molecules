@@ -93,6 +93,8 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
             batch_size = input_ids.size(0)  # Armazena o tamanho do lote
             input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+            
+            print(f"Batch {batch_idx}: input_ids.shape={input_ids.shape}, attention_mask.shape={attention_mask.shape}")
 
             optimizer.zero_grad()
 
@@ -140,6 +142,11 @@ def generate_molecule(cvae, z, tokenizer):
     with torch.no_grad():
         # Assumimos que z é um batch de vetores latentes
         recon_smiles_logits = cvae.decode(z)
+    
+        # Verificação adicional
+        if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != cvae.max_sequence_length:
+            raise ValueError(f"Dimension mismatch in logits: {recon_smiles_logits.shape}")
+
         # Aqui precisamos converter logits para SMILES reais, o que pode ser um processo complexo
         # que envolve a escolha do melhor caminho através dos logits. Um exemplo simplificado seria:
         recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
