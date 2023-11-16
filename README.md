@@ -54,3 +54,21 @@ The model encodes SMILES inputs using RoBERTa, creates a latent space, and decod
 - `EPOCHS`: Number of training epochs.
 
 
+## Usage
+
+- The model is trained on a dataset of SMILES strings.
+- It can generate new molecular structures based on the learned latent space.
+
+## Dependencies
+
+- PyTorch for model implementation.
+- Transformers library for the pre-trained RoBERTa model.
+- Other standard Python libraries for data handling and visualization.
+
+## Installation and Execution
+
+- Clone the repository.
+- Install required dependencies.
+- Run the script with appropriate dataset and parameters.
+
+
