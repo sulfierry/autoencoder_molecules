@@ -137,24 +137,29 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
 
 
 # Função para gerar moléculas com o modelo
-def generate_molecule(cvae, z, tokenizer):
+def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
     cvae.eval()
     with torch.no_grad():
-        # Assumimos que z é um batch de vetores latentes
+        # Decodifica os vetores latentes
         recon_smiles_logits = cvae.decode(z)
-        print(f"Logits: {recon_smiles_logits}")  # Imprime os logits
-
-    
-        # Verificação adicional
+        
         if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != cvae.max_sequence_length:
             raise ValueError(f"Dimension mismatch in logits: {recon_smiles_logits.shape}")
 
-        # Aqui precisamos converter logits para SMILES reais, o que pode ser um processo complexo
-        # que envolve a escolha do melhor caminho através dos logits. Um exemplo simplificado seria:
-        recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
-        # Vamos decodificar o primeiro exemplo do batch
+        # Escolha do método de decodificação
+        if method == 'argmax':
+            # Decodificação simples usando argmax
+            recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
+        elif method == 'sampling':
+            # Decodificação por sampling
+            probabilities = torch.nn.functional.softmax(recon_smiles_logits, dim=-1)
+            recon_smiles = torch.multinomial(probabilities.view(-1, cvae.vocab_size), 1)
+            recon_smiles = recon_smiles.view(-1, cvae.max_sequence_length)
+
+        # Decodificar o primeiro exemplo do batch
         recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
         return recon_smiles_decoded
+
 
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
@@ -257,8 +262,8 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
-    generated_smile = generate_molecule(cvae, z, tokenizer)
-
+    generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
+    
     # Salvar o estado do dicionário do modelo
     torch.save(cvae.state_dict(), 'cvae_finetuned.pth')
 
@@ -270,7 +275,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     # Após o treinamento
     test_z = torch.randn(1, LATENT_DIM).to(device)  # Gera um vetor latente aleatório
-    test_smile = generate_molecule(cvae, test_z, tokenizer)
+    test_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
     print(f"Test SMILES: {test_smile}")
 
     # Liberação de memória da GPU
