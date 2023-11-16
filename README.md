@@ -2,6 +2,7 @@
 
 Below are the dependencies for the Conda environment named "py39":
 
+```bash
 echo "# This file may be used to create an environment using:" > dependencies.txt
 echo "# \$ conda create --name <env> --file <this file>" >> dependencies.txt
 echo "platform: linux-64" >> dependencies.txt
@@ -23,7 +24,7 @@ echo "tzdata=2023c=h04d1e81_0" >> dependencies.txt
 echo "wheel=0.41.2=py39h06a4308_0" >> dependencies.txt
 echo "xz=5.2.5=h7f8727e_1" >> dependencies.txt
 echo "zlib=1.2.12=h7f8727e_2" >> dependencies.txt
-
+```
 
 You can copy and paste this content into a Markdown file, and then add the file to your GitHub repository to document the dependencies of your Conda environment. Make sure to update the file whenever there are changes to the dependencies.
 
@@ -35,7 +36,7 @@ echo "Below are the dependencies for the Conda environment named \"py39\":" >> d
 echo "```" >> dependencies.md
 cat packages.txt >> dependencies.md
 echo "```" >> dependencies.md
-
+```
 
 # SMILES Autoencoder
 
