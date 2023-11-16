@@ -155,12 +155,11 @@ class CVAE(nn.Module):
 
         # Tamanho de saída para o decodificador
         decoder_output_size = max_sequence_length * vocab_size
-        print(f"Decoder output size: {decoder_output_size}")
 
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, self.encoder.config.hidden_size),
-            #nn.LayerNorm(self.encoder.config.hidden_size),  # Layer normalization
             nn.ReLU(),
+            # Ajuste da camada linear para produzir o tamanho de saída correto
             nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
             nn.Unflatten(1, (max_sequence_length, vocab_size)),
             nn.LogSoftmax(dim=-1)
@@ -180,30 +179,17 @@ class CVAE(nn.Module):
         return mu + eps * std
 
     def decode(self, z):
-        output = self.decoder[0:3](z)
-    
-        # Remover uma dimensão extra se ela existir
-        if output.dim() > 2:
-            output = output.squeeze(1)
-            print("Shape after squeeze:", output.shape)
-    
-        # Verificar se o tamanho antes do unflatten está correto
-        expected_size = self.max_sequence_length * self.vocab_size
-        if output.shape[-1] != expected_size:
-            raise RuntimeError(f"Incorrect shape before unflatten. Got {output.shape[-1]}, expected {expected_size}")
-    
-        # Desdobrar a última dimensão
-        output = output.unflatten(1, (self.max_sequence_length, self.vocab_size))
-    
-        # Aplicar o restante da sequência do decodificador
-        return self.decoder[3:](output)
-
-
+        output = self.decoder(z)
+        # Certifique-se de que a saída tem as dimensões corretas
+        if output.shape[-2:] != (self.max_sequence_length, self.vocab_size):
+            raise RuntimeError(f"Incorrect output shape. Got {output.shape[-2:]}, expected ({self.max_sequence_length}, {self.vocab_size})")
+        return output
 
     def forward(self, input_ids, attention_mask):
         mu, log_var = self.encode(input_ids, attention_mask)
         z = self.reparameterize(mu, log_var)
         return self.decode(z), mu, log_var
+
 
 
 # Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
