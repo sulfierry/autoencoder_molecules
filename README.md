@@ -42,3 +42,15 @@ This project implements a Conditional Variational Autoencoder (CVAE) for generat
 - `train_cvae`: Function to train the CVAE.
 - `generate_molecule`: Function to generate new molecular structures.
 
+
+## Model Workflow
+
+The model encodes SMILES inputs using RoBERTa, creates a latent space, and decodes to generate new SMILES structures.
+
+## Model Parameters
+
+- `LATENT_DIM`: Dimension of the latent space.
+- `BATCH_SIZE`, `LEARNING_RATE`, `WEIGHT_DECAY`: Training parameters.
+- `EPOCHS`: Number of training epochs.
+
+
