@@ -13,6 +13,9 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import RobertaTokenizer, RobertaModel
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
 EPOCHS = 3
@@ -160,6 +163,26 @@ def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
 
+
+def postprocess_smiles(generated_smiles, reference_smile):
+    corrected_smiles = []
+    ref_mol = Chem.MolFromSmiles(reference_smile)
+
+    for smile in generated_smiles:
+        mol = Chem.MolFromSmiles(smile)
+        if mol is not None:
+            # Tente otimizar a geometria baseando-se na molécula de referência
+            try:
+                AllChem.AlignMol(mol, ref_mol)
+                corrected_smiles.append(Chem.MolToSmiles(mol))
+            except:
+                corrected_smiles.append(smile)
+        else:
+            # Se o SMILES for inválido, mantenha o original (ou você pode optar por excluir)
+            corrected_smiles.append(smile)
+
+    return corrected_smiles
+    
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
         super(CVAE, self).__init__()
