@@ -16,19 +16,19 @@ from rdkit.Chem import Descriptors, rdMolDescriptors, AllChem
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
 EPOCHS = 3
 BATCH_SIZE = 8  # 32
 LATENT_DIM = 4 # 256
 WEIGHT_DECAY = 1e-5 # regularizacao L2
 LEARNING_RATE = 1e-3 # Otimizador
-
+LOG_INTERVAL = 10
 
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
         super(CVAE, self).__init__()
-        self.device = device
+        self.DEVICE = DEVICE
         self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
 
         self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
@@ -95,9 +95,9 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
         train_loss = 0
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
             batch_size = input_ids.size(0)  # Armazena o tamanho do lote
-            input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+            input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
             
-            print(f"Batch {batch_idx}: input_ids.shape={input_ids.shape}, attention_mask.shape={attention_mask.shape}")
+            # print(f"Batch {batch_idx}: input_ids.shape={input_ids.shape}, attention_mask.shape={attention_mask.shape}")
 
             optimizer.zero_grad()
 
@@ -261,7 +261,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     cvae = CVAE(pretrained_model_name=pretrained_model_name,
                 latent_dim=LATENT_DIM,
                 vocab_size=vocab_size,
-                max_sequence_length=tokenizer.model_max_length).to(device)
+                max_sequence_length=tokenizer.model_max_length).to(DEVICE)
 
     # Prepara o dataset e o dataloader
     dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
@@ -274,14 +274,14 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     #optimizer = optim.AdamW(cvae.parameters(), lr=1e-3)
 
     # Treina o CVAE
-    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=10)
+    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=LOG_INTERVAL)
 
     # Gera uma nova molécula
     input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
 
     # Corrigindo o erro - Convertendo listas em tensores e movendo para o dispositivo adequado
-    input_ids = torch.cat(input_ids).to(device)
-    attention_mask = torch.cat(attention_mask).to(device)
+    input_ids = torch.cat(input_ids).to(DEVICE)
+    attention_mask = torch.cat(attention_mask).to(DEVICE)
 
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
