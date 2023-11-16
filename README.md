@@ -38,7 +38,7 @@ cat packages.txt >> dependencies.md
 echo "```" >> dependencies.md
 ```
 
-# SMILES Autoencoder
+# SMILES Autoencoder (ver_0.7_pkidb_chembl.py)
 
 ## Description
 
