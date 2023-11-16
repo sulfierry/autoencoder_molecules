@@ -192,11 +192,20 @@ class CVAE(nn.Module):
         return mu + eps * std
 
     def decode(self, z):
-        output = self.decoder(z)
-        # Certifique-se de que a saída tem as dimensões corretas
+        # Processamento inicial
+        output = self.decoder[:3](z)
+        
+        # Log para verificar a forma do tensor antes de unflatten
+        print(f"Shape before unflatten: {output.shape}")
+    
+        # Camada Unflatten
+        output = self.decoder[3:](output)
+    
+        # Verificação final
         if output.shape[-2:] != (self.max_sequence_length, self.vocab_size):
             raise RuntimeError(f"Incorrect output shape. Got {output.shape[-2:]}, expected ({self.max_sequence_length}, {self.vocab_size})")
         return output
+
 
     def forward(self, input_ids, attention_mask):
         mu, log_var = self.encode(input_ids, attention_mask)
