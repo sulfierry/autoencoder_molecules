@@ -14,7 +14,7 @@ from transformers import RobertaTokenizer, RobertaModel
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import Descriptors, rdMolDescriptors, AllChem
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
@@ -24,51 +24,55 @@ LATENT_DIM = 4 # 256
 WEIGHT_DECAY = 1e-5 # regularizacao L2
 LEARNING_RATE = 1e-3 # Otimizador
 
-# Correções na classe SmilesDataset
-class SmilesDataset(Dataset):
-    def __init__(self, file_path, tokenizer, max_length=512):
-        self.data = pd.read_csv(file_path, sep='\t')
-        self.tokenizer = tokenizer
-        self.max_length = max_length
 
-    def __len__(self):
-        return len(self.data)
+class CVAE(nn.Module):
+    def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
+        super(CVAE, self).__init__()
+        self.device = device
+        self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
 
-    def __getitem__(self, idx):
-        smile = self.data.iloc[idx]['Canonical_Smiles']
-        inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
+        self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
+        self.fc_var = nn.Linear(self.encoder.config.hidden_size, latent_dim)
+
+        self.max_sequence_length = max_sequence_length
+        self.vocab_size = vocab_size
+
+        # Tamanho de saída para o decodificador
+        decoder_output_size = max_sequence_length * vocab_size
+
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, self.encoder.config.hidden_size),
+            nn.ReLU(),
+            # Ajuste da camada linear para produzir o tamanho de saída correto
+            nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
+            # nn.Unflatten(1, (max_sequence_length, vocab_size)),
+            nn.LogSoftmax(dim=-1)
+        )
+
+    def encode(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids, attention_mask=attention_mask)
+        last_hidden_states = outputs.last_hidden_state
+        pooled_output = torch.mean(last_hidden_states, dim=1)
+        mu = self.fc_mu(pooled_output)
+        log_var = self.fc_var(pooled_output)
+        return mu, log_var
+
+    def reparameterize(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        return mu + eps * std
         
-        # Verificações de dimensões
-        input_ids, attention_mask = inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
-        if input_ids.dim() != 1 or attention_mask.dim() != 1:
-            raise ValueError(f"Dimension mismatch: input_ids.dim()={input_ids.dim()}, attention_mask.dim()={attention_mask.dim()}")
+    def decode(self, z):
+        output = self.decoder(z)
+        # Adicione a remodelagem aqui
+        output = output.view(-1, self.max_sequence_length, self.vocab_size)
+        # LogSoftmax já está sendo aplicado no nn.Sequential
+        return output
 
-        return input_ids, attention_mask
-
-def loss_function(recon_x, x, mu, logvar):
-    # Verifique se recon_x tem três dimensões. Se não, algo está errado.
-    if recon_x.dim() != 3:
-        raise ValueError(f"recon_x should be 3-dimensional (batch_size, sequence_length, num_classes), but got shape {recon_x.shape}")
-
-    # Flatten os logits e os índices de classe para passar para a cross_entropy.
-    # A função cross_entropy espera logits no formato (batch_size * sequence_length, num_classes)
-    # e índices de classe no formato (batch_size * sequence_length).
-    CE = nn.functional.cross_entropy(recon_x.view(-1, recon_x.size(2)), x.view(-1), reduction='sum')
-
-    # Cálculo da Divergência KL
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
-    return CE + KLD
-
-
-def smiles_to_token_ids_parallel(smiles_list, tokenizer):
-
-    with ThreadPoolExecutor(max_workers=NUM_CPUS) as executor:
-        futures = [executor.submit(tokenizer, smile, return_tensors='pt', padding=True, truncation=True) for smile in smiles_list]
-        results = [future.result() for future in as_completed(futures)]
-    return [res['input_ids'] for res in results], [res['attention_mask'] for res in results]
-
-
+    def forward(self, input_ids, attention_mask):
+        mu, log_var = self.encode(input_ids, attention_mask)
+        z = self.reparameterize(mu, log_var)
+        return self.decode(z), mu, log_var
 
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
@@ -134,99 +138,51 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
     return epoch_losses
 
 
+def loss_function(recon_x, x, mu, logvar):
+    # Verifique se recon_x tem três dimensões. Se não, algo está errado.
+    if recon_x.dim() != 3:
+        raise ValueError(f"recon_x should be 3-dimensional (batch_size, sequence_length, num_classes), but got shape {recon_x.shape}")
 
-# Função para gerar moléculas com o modelo
+    # Flatten os logits e os índices de classe para passar para a cross_entropy.
+    # A função cross_entropy espera logits no formato (batch_size * sequence_length, num_classes)
+    # e índices de classe no formato (batch_size * sequence_length).
+    CE = nn.functional.cross_entropy(recon_x.view(-1, recon_x.size(2)), x.view(-1), reduction='sum')
 
-def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
-    cvae.eval()
-    with torch.no_grad():
-        # Decodifica os vetores latentes
-        recon_smiles_logits = cvae.decode(z)
+    # Cálculo da Divergência KL
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+    return CE + KLD
+
+
+class SmilesDataset(Dataset):
+    def __init__(self, file_path, tokenizer, max_length=512):
+        self.data = pd.read_csv(file_path, sep='\t')
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        smile = self.data.iloc[idx]['Canonical_Smiles']
+        inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
         
-        if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != cvae.max_sequence_length:
-            raise ValueError(f"Dimension mismatch in logits: {recon_smiles_logits.shape}")
+        # Verificações de dimensões
+        input_ids, attention_mask = inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
+        if input_ids.dim() != 1 or attention_mask.dim() != 1:
+            raise ValueError(f"Dimension mismatch: input_ids.dim()={input_ids.dim()}, attention_mask.dim()={attention_mask.dim()}")
 
-        # Escolha do método de decodificação
-        if method == 'argmax':
-            # Decodificação simples usando argmax
-            recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
-        elif method == 'sampling':
-            # Decodificação por sampling
-            probabilities = torch.nn.functional.softmax(recon_smiles_logits, dim=-1)
-            recon_smiles = torch.multinomial(probabilities.view(-1, cvae.vocab_size), 1)
-            recon_smiles = recon_smiles.view(-1, cvae.max_sequence_length)
+        return input_ids, attention_mask
 
-        # Decodificar o primeiro exemplo do batch
-        recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
-        return recon_smiles_decoded
+def smiles_to_token_ids_parallel(smiles_list, tokenizer):
+
+    with ThreadPoolExecutor(max_workers=NUM_CPUS) as executor:
+        futures = [executor.submit(tokenizer, smile, return_tensors='pt', padding=True, truncation=True) for smile in smiles_list]
+        results = [future.result() for future in as_completed(futures)]
+    return [res['input_ids'] for res in results], [res['attention_mask'] for res in results]
 
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
-
-    
-class CVAE(nn.Module):
-    def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
-        super(CVAE, self).__init__()
-        self.device = device
-        self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
-
-        self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim)
-        self.fc_var = nn.Linear(self.encoder.config.hidden_size, latent_dim)
-
-        self.max_sequence_length = max_sequence_length
-        self.vocab_size = vocab_size
-
-        # Tamanho de saída para o decodificador
-        decoder_output_size = max_sequence_length * vocab_size
-
-        self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, self.encoder.config.hidden_size),
-            nn.ReLU(),
-            # Ajuste da camada linear para produzir o tamanho de saída correto
-            nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
-            # nn.Unflatten(1, (max_sequence_length, vocab_size)),
-            nn.LogSoftmax(dim=-1)
-        )
-
-    def encode(self, input_ids, attention_mask):
-        outputs = self.encoder(input_ids, attention_mask=attention_mask)
-        last_hidden_states = outputs.last_hidden_state
-        pooled_output = torch.mean(last_hidden_states, dim=1)
-        mu = self.fc_mu(pooled_output)
-        log_var = self.fc_var(pooled_output)
-        return mu, log_var
-
-    def reparameterize(self, mu, log_var):
-        std = torch.exp(0.5 * log_var)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-        
-    def decode(self, z):
-        output = self.decoder(z)
-        # Adicione a remodelagem aqui
-        output = output.view(-1, self.max_sequence_length, self.vocab_size)
-        # LogSoftmax já está sendo aplicado no nn.Sequential
-        return output
-
-    def forward(self, input_ids, attention_mask):
-        mu, log_var = self.encode(input_ids, attention_mask)
-        z = self.reparameterize(mu, log_var)
-        return self.decode(z), mu, log_var
-
-
-def calculate_properties(mol):
-    return {
-        'mw': Descriptors.MolWt(mol),
-        'logp': Descriptors.MolLogP(mol),
-        'hbd': rdMolDescriptors.CalcNumHBD(mol),
-        'hba': rdMolDescriptors.CalcNumHBA(mol)
-    }
-
-def is_similar(prop1, prop2, threshold=0.2):
-    for key in prop1:
-        if abs(prop1[key] - prop2[key]) > threshold:
-            return False
-    return True
 
 def postprocess_smiles(smiles_list, reference_smile):
     reference_mol = Chem.MolFromSmiles(reference_smile)
@@ -253,11 +209,45 @@ def postprocess_smiles(smiles_list, reference_smile):
             processed_smiles.append({'smile': f"Error: {str(e)}"})
 
     return processed_smiles
+    
+def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
+    cvae.eval()
+    with torch.no_grad():
+        # Decodifica os vetores latentes
+        recon_smiles_logits = cvae.decode(z)
+        
+        if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != cvae.max_sequence_length:
+            raise ValueError(f"Dimension mismatch in logits: {recon_smiles_logits.shape}")
+
+        # Escolha do método de decodificação
+        if method == 'argmax':
+            # Decodificação simples usando argmax
+            recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
+        elif method == 'sampling':
+            # Decodificação por sampling
+            probabilities = torch.nn.functional.softmax(recon_smiles_logits, dim=-1)
+            recon_smiles = torch.multinomial(probabilities.view(-1, cvae.vocab_size), 1)
+            recon_smiles = recon_smiles.view(-1, cvae.max_sequence_length)
+
+        # Decodificar o primeiro exemplo do batch
+        recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
+        return recon_smiles_decoded
+
+def calculate_properties(mol):
+    return {
+        'mw': Descriptors.MolWt(mol),
+        'logp': Descriptors.MolLogP(mol),
+        'hbd': rdMolDescriptors.CalcNumHBD(mol),
+        'hba': rdMolDescriptors.CalcNumHBA(mol)
+    }
+
+def is_similar(prop1, prop2, threshold=0.2):
+    for key in prop1:
+        if abs(prop1[key] - prop2[key]) > threshold:
+            return False
+    return True
 
 
-
-# Certifique-se de que todas as classes e funções necessárias estejam importadas ou definidas aqui.
-# Isso inclui CVAE, SmilesDataset, train_cvae, smiles_to_token_ids, generate_molecule.
 def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE):
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -295,7 +285,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
-    
+
     generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
 
     # Pós-processamento e validação de SMILES
