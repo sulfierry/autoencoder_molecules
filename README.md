@@ -42,9 +42,7 @@ echo "```" >> dependencies.md
 
 ## Description
 
-## Molecule Similarity Finder
-
-The code is designed to identify similar molecules between two distinct datasets, using a pre-trained ChemBERTa model to extract vector representations (embeddings) from SMILES notations. These representations are then used to calculate the similarity between the molecules of the two sets. 
+The Molecular Similarity Finder is a Python script designed for molecular similarity analysis using the ChemBERTa model. This script enables users to identify molecules that are similar to a given target dataset based on their Simplified Molecular Input Line Entry System (SMILES) representations. It leverages parallel processing for efficient molecular embedding calculations and employs the FAISS library for fast and scalable similarity searches.
 
 ## How it Works
 
@@ -59,6 +57,51 @@ The code is designed to identify similar molecules between two distinct datasets
 5. **Similarity Calculation**: Similarity between molecules from the two datasets is calculated using cosine similarity between their normalized embeddings. For each molecule in the PKIDB dataset, we identify the most similar molecules in the ChEMBL dataset.
 
 6. **Results**: The program returns a list of the most similar molecules, including their SMILES notations, indices, and similarity scores. The results can be used for subsequent analyses, such as studies of structure-activity relationships or to identify potential drug candidates.
+
+## Key Features
+
+- **Data Preprocessing:** Load and preprocess molecular data from ChemBL (Chemical Biology Database) and a user-defined target dataset.
+- **Embedding Generation:** Calculate molecular embeddings for both datasets using the state-of-the-art ChemBERTa model.
+- **Similarity Search:** Perform rapid similarity search across molecules using FAISS, enabling the identification of structurally similar compounds.
+- **Visualization:** Visualize the results through dimensionality reduction using t-SNE (t-Distributed Stochastic Neighbor Embedding) and cluster analysis.
+- **Score Histograms:** Generate histograms to visualize the distribution of similarity scores among the identified molecules.
+- **Data Export:** Save the details of similar molecules to a structured TSV (Tab-Separated Values) file for further analysis.
+
+## Usage Instructions
+
+To utilize the Molecular Similarity Finder:
+
+1. **Install Dependencies:** Ensure that the necessary Python libraries, including PyTorch, FAISS, Transformers, NumPy, Pandas, Seaborn, Matplotlib, and Scikit-learn, are installed in your environment.
+
+2. **Customize Configuration:** Tailor the script to your specific dataset and preferences by adjusting file paths, similarity thresholds, and other configurable parameters.
+
+3. **Execution:** Execute the script. It will handle the computation of molecular embeddings, conduct similarity searches, and visualize the results.
+
+4. **Results:** Examine the output files, including similarity scores and visualizations, generated as per your script's settings.
+
+## Dependencies
+
+The script relies on a selection of widely-used Python libraries:
+
+- **PyTorch:** For deep learning and neural network operations.
+- **FAISS:** To enable efficient similarity search.
+- **Transformers (Hugging Face):** For working with the ChemBERTa model.
+- **NumPy:** For numerical and array operations.
+- **Pandas:** For data manipulation and storage.
+- **Seaborn:** For enhanced data visualization.
+- **Matplotlib:** For creating plots and figures.
+- **Scikit-learn:** For machine learning and clustering tasks.
+
+Ensure that these libraries are installed in your Python environment before executing the script.
+
+## License and Usage
+
+The Molecular Similarity Finder script is open-source and provided under a permissive license, granting users the freedom to use and modify it as needed. For comprehensive details regarding its usage and licensing terms, please refer to the script's header section.
+
+---
+
+**Important Note:** Prior to executing the script, it is advisable to thoroughly review its content and tailor it to suit your specific research or application. Detailed instructions and configuration options are comprehensively documented within the script itself.
+
 
 # CVAE for SMILES Molecular Structures Generation (cvae_0.02.py)
 
