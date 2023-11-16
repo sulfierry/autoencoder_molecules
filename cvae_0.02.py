@@ -34,7 +34,13 @@ class SmilesDataset(Dataset):
     def __getitem__(self, idx):
         smile = self.data.iloc[idx]['Canonical_Smiles']
         inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
-        return inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
+        
+        # Verificações de dimensões
+        input_ids, attention_mask = inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
+        if input_ids.dim() != 1 or attention_mask.dim() != 1:
+            raise ValueError(f"Dimension mismatch: input_ids.dim()={input_ids.dim()}, attention_mask.dim()={attention_mask.dim()}")
+
+        return input_ids, attention_mask
 
 def loss_function(recon_x, x, mu, logvar):
     # Verifique se recon_x tem três dimensões. Se não, algo está errado.
