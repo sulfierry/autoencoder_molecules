@@ -174,7 +174,7 @@ class CVAE(nn.Module):
             nn.ReLU(),
             # Ajuste da camada linear para produzir o tamanho de saída correto
             nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
-            nn.Unflatten(1, (max_sequence_length, vocab_size)),
+            # nn.Unflatten(1, (max_sequence_length, vocab_size)),
             nn.LogSoftmax(dim=-1)
         )
 
@@ -190,25 +190,15 @@ class CVAE(nn.Module):
         std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
         return mu + eps * std
-    
+        
     def decode(self, z):
-        output = self.decoder[:3](z)  # Processamento até a última camada linear
-    
-        # Verifica se a forma do tensor é a esperada (2D) e ajusta se necessário
-        if output.dim() == 2:
-            # Recria o tensor como 3D [batch_size, max_sequence_length, vocab_size]
-            output = output.view(-1, self.max_sequence_length, self.vocab_size)
-        else:
-            # Se a forma do tensor não for a esperada, levanta um erro
-            raise RuntimeError(f"Incorrect output shape before reshape. Expected 2 dimensions, got {output.dim()}")
-    
-        print(f"Output shape before reshape: {output.shape}")
-    
-        # Continua o processamento com o tensor recriado
-        output = self.decoder[3:](output)
+        output = self.decoder(z)
+        # Adicione a remodelagem aqui
+        output = output.view(-1, self.max_sequence_length, self.vocab_size)
+        # LogSoftmax já está sendo aplicado no nn.Sequential
         return output
-
     
+        
 
 
 
