@@ -66,10 +66,6 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
     return [res['input_ids'] for res in results], [res['attention_mask'] for res in results]
 
 
-# Função para converter token IDs em SMILES
-def token_ids_to_smiles(token_ids, tokenizer):
-    return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
-
 
 def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval):
     # Congelar os parâmetros do encoder, caso você queira fazer ajuste fino apenas do decoder
@@ -130,13 +126,14 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
     plt.grid(True)
     plt.show()
     plt.savefig('loss_epochs.png')
-    plt.close()
+    #plt.close()
 
     return epoch_losses
 
 
 
 # Função para gerar moléculas com o modelo
+
 def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
     cvae.eval()
     with torch.no_grad():
@@ -160,6 +157,8 @@ def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
         recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
         return recon_smiles_decoded
 
+def token_ids_to_smiles(token_ids, tokenizer):
+    return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
 
 class CVAE(nn.Module):
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length):
@@ -199,21 +198,14 @@ class CVAE(nn.Module):
         return mu + eps * std
         
     def decode(self, z):
-        output = self.decoder[:3](z)  # Processamento até a última camada linear
-    
-        # Verifica se a forma do tensor é a esperada (2D) e ajusta se necessário
-        if output.dim() == 2:
-            # Recria o tensor como 3D [batch_size, max_sequence_length, vocab_size]
-            output = output.view(-1, self.max_sequence_length, self.vocab_size)
-        else:
-            # Se a forma do tensor não for a esperada, levanta um erro
-            raise RuntimeError(f"Incorrect output shape before reshape. Expected 2 dimensions, got {output.dim()}")
-    
-        print(f"Output shape before reshape: {output.shape}")
-    
-        # Continua o processamento com o tensor recriado
-        output = self.decoder[3:](output)
+        output = self.decoder(z)
+        # Adicione a remodelagem aqui
+        output = output.view(-1, self.max_sequence_length, self.vocab_size)
+        # LogSoftmax já está sendo aplicado no nn.Sequential
         return output
+    
+        
+
 
 
     def forward(self, input_ids, attention_mask):
@@ -262,8 +254,8 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
 
     z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
-    generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
-    
+    generated_smile = generate_molecule(cvae, z, tokenizer)
+
     # Salvar o estado do dicionário do modelo
     torch.save(cvae.state_dict(), 'cvae_finetuned.pth')
 
@@ -272,11 +264,6 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     # Parar o cronômetro e imprimir o tempo total
     end_time = time.time()
     print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
-
-    # Após o treinamento
-    test_z = torch.randn(1, LATENT_DIM).to(device)  # Gera um vetor latente aleatório
-    test_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
-    print(f"Test SMILES: {test_smile}")
 
     # Liberação de memória da GPU
     del cvae
