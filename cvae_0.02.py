@@ -18,7 +18,7 @@ NUM_CPUS = os.cpu_count()
 EPOCHS = 5000
 BATCH_SIZE = 128
 LEARNING_RATE = 1e-3
-
+LATENT_DIM = 512
 # Correções na classe SmilesDataset
 class SmilesDataset(Dataset):
     def __init__(self, file_path, tokenizer, max_length=512):
@@ -211,7 +211,7 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     cvae = CVAE(pretrained_model_name=pretrained_model_name,
                 latent_dim=LATENT_DIM,
                 vocab_size=vocab_size,
-                max_sequence_length=tokenizer.model_max_length).to(device)
+                max_sequence_length=tokenizer.model_max_length).to(DEVICE)
 
     # Prepara o dataset e o dataloader
     dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
@@ -227,8 +227,8 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
 
     # Corrigindo o erro - Convertendo listas em tensores e movendo para o dispositivo adequado
-    input_ids_tensor = torch.cat(input_ids).to(device)
-    attention_mask_tensor = torch.cat(attention_mask).to(device)
+    input_ids_tensor = torch.cat(input_ids).to(DEVICE)
+    attention_mask_tensor = torch.cat(attention_mask).to(DEVICE)
 
     z = cvae.encode(input_ids_tensor, attention_mask_tensor)[0]  # Obtém apenas o mu (média) do espaço latente
     z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
