@@ -194,12 +194,14 @@ class CVAE(nn.Module):
     def decode(self, z):
         output = self.decoder[:3](z)  # Processamento até a última camada linear
     
-        # Verificar o tamanho da saída da última camada linear
-        print(f"Output shape after linear layer: {output.shape}")
+        # Verificação antes de Unflatten
+        print(f"Output shape before unflatten: {output.shape}")
+        if output.shape[1] != self.max_sequence_length * self.vocab_size:
+            raise RuntimeError(f"Incorrect input size for unflatten. Expected {self.max_sequence_length * self.vocab_size}, got {output.shape[1]}")
     
-        # Continuação do processamento
-        output = self.decoder[3:](output)
+        output = self.decoder[3:](output)  # Continuação do processamento
         return output
+
 
 
 
