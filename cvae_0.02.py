@@ -202,11 +202,12 @@ class CVAE(nn.Module):
             # Se a forma do tensor não for a esperada, levanta um erro
             raise RuntimeError(f"Incorrect output shape before reshape. Expected 2 dimensions, got {output.dim()}")
     
-        print(f"Output shape before unflatten: {output.shape}")
+        print(f"Output shape before reshape: {output.shape}")
     
-        # Passa o tensor recriado através do restante do decodificador
+        # Continua o processamento com o tensor recriado
         output = self.decoder[3:](output)
         return output
+
     
 
 
