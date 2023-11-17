@@ -351,3 +351,13 @@ def load_pre_trained(smiles_input, pretrained_model_name, pkidb_file_path, num_e
 
 
 
+# Se este script estiver sendo executado como o script principal, execute a função main.
+if __name__ == '__main__':
+  
+    smiles_input = 'C1=CC(=CC=C1NC(=O)C[C@@H](C(=O)O)N)OC2=CC(=C(C=C2Br)F)F'
+    pretrained_model_name = 'seyonec/ChemBERTa-zinc-base-v1'
+    pkidb_file_path =  './pkidb_2023-06-30.tsv'  # Atualize para o caminho correto
+    main(smiles_input, pretrained_model_name, pkidb_file_path) # comente caso utilize as linhas abaixo
+
+    # cvae_model_path = './cvae_finetuned.pth'
+    # load_pre_trained(smiles_input, pretrained_model_name, pkidb_file_path, cvae_model_path)
