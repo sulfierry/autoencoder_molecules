@@ -310,3 +310,44 @@ def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS
     torch.cuda.empty_cache()
 
 
+def load_pre_trained(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE, cvae_model_path=None):
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    start_time = time.time()
+
+    # Tokenizador e modelo pré-treinado são carregados
+    
+    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
+    vocab_size = tokenizer.vocab_size
+
+    # Carregar o modelo
+    cvae = CVAE(pretrained_model_name, LATENT_DIM, vocab_size, tokenizer.model_max_length).to(DEVICE)
+    cvae.load_state_dict(torch.load(cvae_model_path))
+
+    # Preparar o SMILES de entrada
+    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
+    input_ids, attention_mask = smiles_to_token_ids_parallel([smiles_input], tokenizer)
+    input_ids = torch.cat(input_ids).to(DEVICE)
+    attention_mask = torch.cat(attention_mask).to(DEVICE)
+
+    # Gerar o vetor latente
+    cvae.eval()  # Modo de avaliação
+    with torch.no_grad():
+        z = cvae.encode(input_ids, attention_mask)[0]
+        z = z.unsqueeze(0)  # Para compatibilidade de formato
+
+    # Gerar a molécula
+    generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling') 
+
+    print(f"Generated SMILES: {generated_smile}")
+
+    # Parar o cronômetro e imprimir o tempo total
+    end_time = time.time()
+    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
+
+    # Liberação de memória da GPU
+    del cvae
+    torch.cuda.empty_cache()
+
+
+
