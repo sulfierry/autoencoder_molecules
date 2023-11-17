@@ -103,7 +103,7 @@ The Molecular Similarity Finder script is open-source and provided under a permi
 **Important Note:** Prior to executing the script, it is advisable to thoroughly review its content and tailor it to suit your specific research or application. Detailed instructions and configuration options are comprehensively documented within the script itself.
 
 
-# CVAE for SMILES Molecular Structures Generation (cvae_0.02.py)
+# CVAE for SMILES Molecular Structures Generation (cvae_0.03.py)
 
 This project implements a Conditional Variational Autoencoder (CVAE) for generating molecular structures using the SMILES (Simplified Molecular Input Line Entry System) format. The model utilizes RoBERTa, a pre-trained language model, as the base for the encoder, and a custom decoder.
 
