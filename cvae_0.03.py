@@ -210,5 +210,41 @@ def postprocess_smiles(smiles_list, reference_smile):
 
     return processed_smiles
     
+def generate_molecule(cvae, z, tokenizer, method='sampling', top_k=50):
+    cvae.eval()
+    with torch.no_grad():
+        # Decodifica os vetores latentes
+        recon_smiles_logits = cvae.decode(z)
+        
+        if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != cvae.max_sequence_length:
+            raise ValueError(f"Dimension mismatch in logits: {recon_smiles_logits.shape}")
+
+        # Escolha do método de decodificação
+        if method == 'argmax':
+            # Decodificação simples usando argmax
+            recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
+        elif method == 'sampling':
+            # Decodificação por sampling
+            probabilities = torch.nn.functional.softmax(recon_smiles_logits, dim=-1)
+            recon_smiles = torch.multinomial(probabilities.view(-1, cvae.vocab_size), 1)
+            recon_smiles = recon_smiles.view(-1, cvae.max_sequence_length)
+
+        # Decodificar o primeiro exemplo do batch
+        recon_smiles_decoded = token_ids_to_smiles(recon_smiles[0], tokenizer)
+        return recon_smiles_decoded
+
+def calculate_properties(mol):
+    return {
+        'mw': Descriptors.MolWt(mol),
+        'logp': Descriptors.MolLogP(mol),
+        'hbd': rdMolDescriptors.CalcNumHBD(mol),
+        'hba': rdMolDescriptors.CalcNumHBA(mol)
+    }
+
+def is_similar(prop1, prop2, threshold=0.2):
+    for key in prop1:
+        if abs(prop1[key] - prop2[key]) > threshold:
+            return False
+    return True
 
 
