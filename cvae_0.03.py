@@ -248,3 +248,65 @@ def is_similar(prop1, prop2, threshold=0.2):
     return True
 
 
+def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE):
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    start_time = time.time()
+
+    # Tokenizador e modelo pré-treinado são carregados
+    
+    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
+    vocab_size = tokenizer.vocab_size
+
+    # Instancia o CVAE com o modelo pré-treinado, dimensão latente e tamanho do vocabulário
+    cvae = CVAE(pretrained_model_name=pretrained_model_name,
+                latent_dim=LATENT_DIM,
+                vocab_size=vocab_size,
+                max_sequence_length=tokenizer.model_max_length).to(DEVICE)
+
+    # Prepara o dataset e o dataloader
+    dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_CPUS)
+
+    # Configura o otimizador
+    optimizer = optim.Adam(cvae.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    #optimizer = optim.RMSprop(cvae.parameters(), lr=1e-3)
+    #optimizer = optim.NAdam(cvae.parameters(), lr=1e-3)
+    #optimizer = optim.AdamW(cvae.parameters(), lr=1e-3)
+
+    # Treina o CVAE
+    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval=LOG_INTERVAL)
+
+    # Gera uma nova molécula
+    input_ids, attention_mask = smiles_to_token_ids_parallel(smiles_input, tokenizer)
+
+    # Corrigindo o erro - Convertendo listas em tensores e movendo para o dispositivo adequado
+    input_ids = torch.cat(input_ids).to(DEVICE)
+    attention_mask = torch.cat(attention_mask).to(DEVICE)
+
+    z = cvae.encode(input_ids, attention_mask)[0]  # Obtém apenas o mu (média) do espaço latente
+    z = z.unsqueeze(0)  # Simula um lote de tamanho 1 para compatibilidade de formato
+
+    generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
+
+    # Pós-processamento e validação de SMILES
+    processed_smiles = postprocess_smiles([generated_smile], smiles_input)
+
+    # Salvar em CSV
+    pd.DataFrame({'Generated_SMILES': processed_smiles}).to_csv('generated_molecules.csv', index=False)
+
+    # Salvar o estado do dicionário do modelo
+    torch.save(cvae.state_dict(), 'cvae_finetuned.pth')
+  
+
+    print(f"Generated SMILES: {generated_smile}")
+
+    # Parar o cronômetro e imprimir o tempo total
+    end_time = time.time()
+    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
+
+    # Liberação de memória da GPU
+    del cvae
+    torch.cuda.empty_cache()
+
+
