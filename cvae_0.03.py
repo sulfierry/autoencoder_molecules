@@ -272,3 +272,50 @@ class CVAE(nn.Module):
             recon_smiles_decoded = tokenizer.decode(recon_smiles[0], skip_special_tokens=True)
             return recon_smiles_decoded
 
+import os
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+def main():
+    # Defina o caminho para o seu arquivo de dados e carregue-os
+    chembl_file_path = '/content/drive/MyDrive/PhD_Leon/Autoencoders/DATASETS/Filters/filter01/filtered_chembl33_IC50_Kd_ki.tsv'  # Substitua pelo caminho correto
+    chembl_data = pd.read_csv(chembl_file_path, sep='\t')
+    smiles_data = chembl_data['canonical_smiles']
+
+    
+    # Defina parâmetros
+    pretrained_model_name = 'seyonec/ChemBERTa-zinc-base-v1'
+    batch_size = 32
+    max_length = 512
+    num_cpus = 4  # Ajuste de acordo com a sua máquina
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Divisão dos dados em treino, validação e teste
+    train_data, test_data = train_test_split(smiles_data, test_size=0.2, random_state=42)
+    train_data, val_data = train_test_split(train_data, test_size=0.25, random_state=42) # 0.25 x 0.8 = 0.2
+
+    # Seleção dos dados de treino, validação e teste
+    chembl_data['set'] = 'train'
+    chembl_data.loc[test_data.index, 'set'] = 'test'
+    chembl_data.loc[val_data.index, 'set'] = 'validation'
+
+    # Preparar DataLoaders
+    num_cpus = os.cpu_count()  # Ajuste este valor conforme adequado para o seu ambiente
+    train_dataloader = data_pre_processing(train_data, pretrained_model_name, batch_size, max_length, num_cpus)
+    val_dataloader = data_pre_processing(val_data, pretrained_model_name, batch_size, max_length, num_cpus)
+    test_dataloader = data_pre_processing(test_data, pretrained_model_name, batch_size, max_length, num_cpus)
+
+
+    # Inicializar o modelo CVAE
+    latent_dim = 128  # Exemplo de dimensão latente
+    vocab_size = 50265  # Vocabulário do ChemBERTa, ajuste conforme necessário
+    cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length, device).to(device)
+
+    # Inicializar o otimizador
+    optimizer = torch.optim.Adam(cvae_model.parameters(), lr=1e-4)
+
+    # Treinar o modelo
+    num_epochs = 10  # Defina o número de épocas
+    log_interval = 100  # Intervalo de log
+    train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval)
+
