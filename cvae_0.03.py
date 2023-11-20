@@ -199,7 +199,6 @@ def postprocess_smiles(smiles_list, reference_smile):
 
     return processed_smiles
 
-
 import torch
 import torch.nn as nn
 from transformers import RobertaModel
@@ -271,6 +270,7 @@ class CVAE(nn.Module):
 
             recon_smiles_decoded = tokenizer.decode(recon_smiles[0], skip_special_tokens=True)
             return recon_smiles_decoded
+
 
 import os
 import pandas as pd
