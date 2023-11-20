@@ -213,6 +213,9 @@ from transformers import RobertaModel
 class CVAE(nn.Module):
     """Autoencoder Variacional Condicional (CVAE) para manipulação de SMILES."""
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length, device):
         super(CVAE, self).__init__()
         self.device = device
