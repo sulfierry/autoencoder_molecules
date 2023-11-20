@@ -307,7 +307,7 @@ def main():
 
 
     # Inicializar o modelo CVAE
-    latent_dim = 128  # Exemplo de dimensão latente
+    latent_dim = 768  # Exemplo de dimensão latente
     vocab_size = 50265  # Vocabulário do ChemBERTa, ajuste conforme necessário
     cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length, device).to(device)
 
@@ -318,7 +318,6 @@ def main():
     num_epochs = 10  # Defina o número de épocas
     log_interval = 100  # Intervalo de log
     train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval)
-
 
 if __name__ == "__main__":
     main()
