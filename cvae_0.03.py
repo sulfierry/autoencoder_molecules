@@ -1,4 +1,3 @@
-from tqdm import tqdm
 from transformers import RobertaTokenizer
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -85,7 +84,6 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
 import torch
 from torch.cuda.amp import GradScaler, autocast
 import matplotlib.pyplot as plt
-import tqdm
 
 def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval):
     scaler = GradScaler()  # Para precisão mista
@@ -98,7 +96,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
         # Treino
         cvae.train()
         train_loss = 0
-        for batch_idx, (input_ids, attention_mask) in enumerate(tqdm(train_dataloader, total=len(train_dataloader))):
+        for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
             input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
             optimizer.zero_grad()
 
@@ -123,7 +121,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
         val_loss = 0
         with torch.no_grad():
             print("Validating...")
-            for input_ids, attention_mask in tqdm(val_dataloader, total=len(val_dataloader)):
+            for input_ids, attention_mask in val_dataloader:
                 input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
                 val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
