@@ -86,7 +86,7 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
     # Perda total combinada
     return CE + beta * KLD
 
-def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval):
+def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval, accumulate_grad_steps=4):
     scaler = GradScaler()  # Para precisão mista
 
     train_losses, val_losses, test_losses = [], [], []
@@ -94,18 +94,28 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
     for epoch in range(num_epochs):
         print(f"Epoch {epoch+1}/{num_epochs}")
         print("Training...")
+
         # Treino
         cvae.train()
         train_loss = 0
         for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
             input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+
+            # Inicializa o acumulador de gradiente
             optimizer.zero_grad()
 
-            with autocast():
-                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
-                loss = loss_function(recon_batch, input_ids, mu, logvar)
+            for i in range(accumulate_grad_steps):
+                start_idx = i * len(input_ids)
+                end_idx = start_idx + len(input_ids)
+                sub_input_ids = input_ids[start_idx:end_idx]
+                sub_attention_mask = attention_mask[start_idx:end_idx]
 
-            scaler.scale(loss).backward()
+                with autocast():
+                    recon_batch, mu, logvar = cvae(sub_input_ids, sub_attention_mask)
+                    loss = loss_function(recon_batch, sub_input_ids, mu, logvar) / accumulate_grad_steps
+
+                scaler.scale(loss).backward()
+
             scaler.step(optimizer)
             scaler.update()
 
@@ -113,7 +123,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
 
             if batch_idx % log_interval == 0:
                 print(f'\tTrain Batch {batch_idx}. Loss: {loss.item() / len(input_ids):.6f}')
-        
+
         epoch_train_loss = train_loss / len(train_dataloader.dataset)
         train_losses.append(epoch_train_loss)
 
@@ -127,7 +137,6 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
                 val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
-      
         epoch_val_loss = val_loss / len(val_dataloader.dataset)
         val_losses.append(epoch_val_loss)
 
@@ -156,7 +165,6 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
     plt.legend()
     plt.grid(True)
     plt.show()
-    plt.savefig('loss_epochs.png')
 
     return train_losses, val_losses, test_losses
 
