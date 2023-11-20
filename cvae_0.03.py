@@ -81,10 +81,10 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
 
     # Perda total combinada
     return CE + beta * KLD
-
 import torch
 from torch.cuda.amp import GradScaler, autocast
 import matplotlib.pyplot as plt
+import tqdm
 
 def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval):
     scaler = GradScaler()  # Para precisão mista
@@ -92,10 +92,12 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
     train_losses, val_losses, test_losses = [], [], []
 
     for epoch in range(num_epochs):
+        print(f"Epoch {epoch+1}/{num_epochs}")
+        print("Training...")
         # Treino
         cvae.train()
         train_loss = 0
-        for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
+        for batch_idx, (input_ids, attention_mask) in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
             input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
             optimizer.zero_grad()
 
@@ -110,32 +112,38 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
             train_loss += loss.item()
 
             if batch_idx % log_interval == 0:
-                print(f'Train Epoch: {epoch} [{batch_idx * len(input_ids)}/{len(train_dataloader.dataset)} ({100. * batch_idx / len(train_dataloader):.0f}%)]\tLoss: {loss.item() / len(input_ids):.6f}')
-
-        train_losses.append(train_loss / len(train_dataloader.dataset))
+                print(f'\tTrain Batch {batch_idx}. Loss: {loss.item() / len(input_ids):.6f}')
+        
+        epoch_train_loss = train_loss / len(train_dataloader.dataset)
+        train_losses.append(epoch_train_loss)
 
         # Validação
         cvae.eval()
         val_loss = 0
         with torch.no_grad():
-            for input_ids, attention_mask in val_dataloader:
+            print("Validating...")
+            for input_ids, attention_mask in tqdm(val_dataloader, total=len(val_dataloader)):
                 input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
                 val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
-        val_losses.append(val_loss / len(val_dataloader.dataset))
+      
+        epoch_val_loss = val_loss / len(val_dataloader.dataset)
+        val_losses.append(epoch_val_loss)
 
         # Teste
         test_loss = 0
         with torch.no_grad():
+            print("Testing...")
             for input_ids, attention_mask in test_dataloader:
                 input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
                 test_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
-        test_losses.append(test_loss / len(test_dataloader.dataset))
+        epoch_test_loss = test_loss / len(test_dataloader.dataset)
+        test_losses.append(epoch_test_loss)
 
-        print(f'Epoch: {epoch} Training Loss: {train_losses[-1]:.4f}, Validation Loss: {val_losses[-1]:.4f}, Test Loss: {test_losses[-1]:.4f}')
+        print(f'Epoch Summary: Train Loss: {epoch_train_loss:.6f}, Validation Loss: {epoch_val_loss:.6f}, Test Loss: {epoch_test_loss:.6f}')
 
     # Plotar o gráfico de perda por época
     plt.figure(figsize=(10, 6))
@@ -148,9 +156,16 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
     plt.legend()
     plt.grid(True)
     plt.show()
-    plt.savefig('loss_epochs.png')
+    # plt.savefig('loss_epochs.png')
 
     return train_losses, val_losses, test_losses
+
+# Exemplo de uso
+# cvae_model = CVAE(...)  # Inicialize seu modelo CVAE aqui
+# optimizer = ...  # Defina seu otimizador aqui
+# num_epochs = ...
+# train_dataloader, val_dataloader, test_dataloader = ...  # Defina seus DataLoaders
+# train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval=10)
 
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
