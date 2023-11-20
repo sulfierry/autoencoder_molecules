@@ -98,7 +98,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
         cvae.train()
         train_loss = 0
         for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
-            input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+            input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
             optimizer.zero_grad()
 
             with autocast():
@@ -123,7 +123,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
         with torch.no_grad():
             print("Validating...")
             for input_ids, attention_mask in val_dataloader:
-                input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+                input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
                 val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
@@ -136,7 +136,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
         with torch.no_grad():
             print("Testing...")
             for input_ids, attention_mask in test_dataloader:
-                input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+                input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
                 recon_batch, mu, logvar = cvae(input_ids, attention_mask)
                 test_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
