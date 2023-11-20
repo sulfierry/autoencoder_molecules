@@ -319,3 +319,6 @@ def main():
     log_interval = 100  # Intervalo de log
     train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval)
 
+
+if __name__ == "__main__":
+    main()
