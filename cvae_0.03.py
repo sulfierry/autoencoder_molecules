@@ -227,11 +227,11 @@ class CVAE(nn.Module):
 
         # Tamanho de saída para o decodificador
         decoder_output_size = max_sequence_length * vocab_size
-
+        intermediate_size = 64 #1024 # tamanho intermediario para a camada
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, self.encoder.config.hidden_size),
+            nn.Linear(latent_dim, intermediate_size),
             nn.ReLU(),
-            nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
+            nn.Linear(intermediate_size, decoder_output_size),
             nn.LogSoftmax(dim=-1)
         ).to(self.device)
 
@@ -287,7 +287,7 @@ from sklearn.model_selection import train_test_split
 def main():
     print("Carregando dados...")
     # Defina o caminho para o seu arquivo de dados e carregue-os
-    chembl_file_path = '/content/drive/MyDrive/PhD_Leon/Autoencoders/DATASETS/Filters/filter01/filtered_chembl33_IC50_Kd_ki.tsv'  # Substitua pelo caminho correto
+    chembl_file_path = './filtered_chembl33_IC50_Kd_ki.tsv'  # Substitua pelo caminho correto
     chembl_data = pd.read_csv(chembl_file_path, sep='\t')
     smiles_data = chembl_data['canonical_smiles']
 
@@ -331,7 +331,7 @@ def main():
     train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval)
 
     print("Treinamento concluído. Salvando o modelo...")
-    model_save_path = "cvae_model.pth"  # Substitua pelo caminho desejado
+    model_save_path = "./cvae_model.pth"  # Substitua pelo caminho desejado
     torch.save(cvae_model.state_dict(), model_save_path)
     print(f"Modelo salvo em {model_save_path}")
 if __name__ == "__main__":
