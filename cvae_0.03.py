@@ -156,16 +156,9 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
     plt.legend()
     plt.grid(True)
     plt.show()
-    # plt.savefig('loss_epochs.png')
+    plt.savefig('loss_epochs.png')
 
     return train_losses, val_losses, test_losses
-
-# Exemplo de uso
-# cvae_model = CVAE(...)  # Inicialize seu modelo CVAE aqui
-# optimizer = ...  # Defina seu otimizador aqui
-# num_epochs = ...
-# train_dataloader, val_dataloader, test_dataloader = ...  # Defina seus DataLoaders
-# train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval=10)
 
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
