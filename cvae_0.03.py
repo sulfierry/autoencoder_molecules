@@ -51,3 +51,34 @@ def data_pre_processing(smiles_data, pretrained_model_name, batch_size, max_leng
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     return dataloader
+
+import torch.nn.functional as F
+
+
+def loss_function(recon_x, x, mu, logvar, beta=1.0):
+    """
+    Calcula a função de perda para um CVAE.
+
+    Args:
+        recon_x (torch.Tensor): Tensor de saída do decoder do CVAE.
+        x (torch.Tensor): Tensor de entrada original.
+        mu (torch.Tensor): Média do espaço latente.
+        logvar (torch.Tensor): Logaritmo da variância do espaço latente.
+        beta (float): Fator de balanceamento entre CE e KLD.
+
+    Returns:
+        torch.Tensor: Valor da perda combinada.
+    """
+    # Verifica as dimensões de recon_x
+    if recon_x.dim() != 3:
+        raise ValueError(f"recon_x should be 3-dimensional (batch_size, sequence_length, num_classes), but got shape {recon_x.shape}")
+
+    # Entropia Cruzada: compara os SMILES reconstruídos com os originais
+    CE = F.cross_entropy(recon_x.view(-1, recon_x.size(2)), x.view(-1), reduction='sum')
+
+    # Divergência KL: regularização do espaço latente
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+    # Perda total combinada
+    return CE + beta * KLD
+
