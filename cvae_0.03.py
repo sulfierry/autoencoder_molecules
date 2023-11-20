@@ -285,7 +285,7 @@ def main():
     pretrained_model_name = 'seyonec/ChemBERTa-zinc-base-v1'
     batch_size = 32
     max_length = 512
-    num_cpus = 4  # Ajuste de acordo com a sua máquina
+    num_cpus = os.cpu_count()  # Ajuste de acordo com a sua máquina
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Divisão dos dados em treino, validação e teste
