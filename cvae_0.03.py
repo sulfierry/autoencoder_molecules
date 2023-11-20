@@ -216,20 +216,25 @@ class CVAE(nn.Module):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+
     def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length, device):
         super(CVAE, self).__init__()
-        self.device = device
+        self.device = device  # Adicionando o dispositivo como um atributo da classe
+
+        # Inicialização do Encoder
         self.encoder = RobertaModel.from_pretrained(pretrained_model_name).to(self.device)
 
+        # Camadas para média e log-variação do espaço latente
         self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim).to(self.device)
         self.fc_var = nn.Linear(self.encoder.config.hidden_size, latent_dim).to(self.device)
 
+        # Ajuste das dimensões para o Decoder
         self.max_sequence_length = max_sequence_length
         self.vocab_size = vocab_size
-
-        # Tamanho de saída para o decodificador
         decoder_output_size = max_sequence_length * vocab_size
-        intermediate_size = 64 #1024 # tamanho intermediario para a camada
+        intermediate_size = 64  # Tamanho intermediário para a camada do Decoder
+
+        # Construção do Decoder
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, intermediate_size),
             nn.ReLU(),
@@ -261,7 +266,6 @@ class CVAE(nn.Module):
         return self.decode(z), mu, log_var
 
     def generate_molecule(self, z, tokenizer, method='sampling', top_k=50):
-        """ Gera uma molécula a partir de um vetor latente. """
         self.eval()
         with torch.no_grad():
             recon_smiles_logits = self.decode(z.to(self.device))
@@ -275,8 +279,6 @@ class CVAE(nn.Module):
                 probabilities = torch.nn.functional.softmax(recon_smiles_logits, dim=-1)
                 recon_smiles = torch.multinomial(probabilities.view(-1, self.vocab_size), 1)
                 recon_smiles = recon_smiles.view(-1, self.max_sequence_length)
-            else:
-                raise ValueError(f"Unsupported decoding method: {method}")
 
             recon_smiles_decoded = tokenizer.decode(recon_smiles[0], skip_special_tokens=True)
             return recon_smiles_decoded
