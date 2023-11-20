@@ -1,10 +1,17 @@
-from transformers import RobertaTokenizer
+import os
 import torch
-from torch.utils.data import DataLoader, Dataset
 import pandas as pd
-
+import torch.nn as nn
+from rdkit import Chem
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+from torch.cuda.amp import GradScaler, autocast
+from torch.utils.data import DataLoader, Dataset
+from sklearn.model_selection import train_test_split
+from rdkit.Chem import Descriptors, rdMolDescriptors
+from transformers import RobertaModel, RobertaTokenizer
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from torch.utils.data import Dataset
+
 
 class SmilesDataset(Dataset):
     """ Dataset personalizado para armazenar e tokenizar dados SMILES. """
@@ -52,9 +59,6 @@ def data_pre_processing(smiles_data, pretrained_model_name, batch_size, max_leng
 
     return dataloader
 
-import torch.nn.functional as F
-
-
 def loss_function(recon_x, x, mu, logvar, beta=1.0):
     """
     Calcula a função de perda para um CVAE.
@@ -81,9 +85,6 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
 
     # Perda total combinada
     return CE + beta * KLD
-import torch
-from torch.cuda.amp import GradScaler, autocast
-import matplotlib.pyplot as plt
 
 def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval):
     scaler = GradScaler()  # Para precisão mista
@@ -159,9 +160,6 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
 
     return train_losses, val_losses, test_losses
 
-from rdkit import Chem
-from rdkit.Chem import Descriptors, rdMolDescriptors
-
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
 
@@ -205,10 +203,6 @@ def postprocess_smiles(smiles_list, reference_smile):
             processed_smiles.append({'smile': f"Error: {str(e)}"})
 
     return processed_smiles
-
-import torch
-import torch.nn as nn
-from transformers import RobertaModel
 
 class CVAE(nn.Module):
     """Autoencoder Variacional Condicional (CVAE) para manipulação de SMILES."""
@@ -279,11 +273,6 @@ class CVAE(nn.Module):
             recon_smiles_decoded = tokenizer.decode(recon_smiles[0], skip_special_tokens=True)
             return recon_smiles_decoded
 
-
-import os
-import pandas as pd
-from sklearn.model_selection import train_test_split
-
 def main():
     print("Carregando dados...")
     # Defina o caminho para o seu arquivo de dados e carregue-os
@@ -334,5 +323,6 @@ def main():
     model_save_path = "./cvae_model.pth"  # Substitua pelo caminho desejado
     torch.save(cvae_model.state_dict(), model_save_path)
     print(f"Modelo salvo em {model_save_path}")
+    
 if __name__ == "__main__":
     main()
