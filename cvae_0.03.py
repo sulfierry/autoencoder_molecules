@@ -285,6 +285,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 def main():
+    print("Carregando dados...")
     # Defina o caminho para o seu arquivo de dados e carregue-os
     chembl_file_path = '/content/drive/MyDrive/PhD_Leon/Autoencoders/DATASETS/Filters/filter01/filtered_chembl33_IC50_Kd_ki.tsv'  # Substitua pelo caminho correto
     chembl_data = pd.read_csv(chembl_file_path, sep='\t')
@@ -308,6 +309,7 @@ def main():
     chembl_data.loc[val_data.index, 'set'] = 'validation'
 
     # Preparar DataLoaders
+    print("Preparando DataLoaders...")
     num_cpus = os.cpu_count()  # Ajuste este valor conforme adequado para o seu ambiente
     train_dataloader = data_pre_processing(train_data, pretrained_model_name, batch_size, max_length, num_cpus)
     val_dataloader = data_pre_processing(val_data, pretrained_model_name, batch_size, max_length, num_cpus)
@@ -323,9 +325,14 @@ def main():
     optimizer = torch.optim.Adam(cvae_model.parameters(), lr=1e-4)
 
     # Treinar o modelo
+    print("Iniciando treinamento...")
     num_epochs = 10  # Defina o número de épocas
     log_interval = 100  # Intervalo de log
     train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval)
 
+    print("Treinamento concluído. Salvando o modelo...")
+    model_save_path = "cvae_model.pth"  # Substitua pelo caminho desejado
+    torch.save(cvae_model.state_dict(), model_save_path)
+    print(f"Modelo salvo em {model_save_path}")
 if __name__ == "__main__":
     main()
