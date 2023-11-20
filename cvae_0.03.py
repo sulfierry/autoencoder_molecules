@@ -151,3 +151,50 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
     plt.savefig('loss_epochs.png')
 
     return train_losses, val_losses, test_losses
+
+from rdkit import Chem
+from rdkit.Chem import Descriptors, rdMolDescriptors
+
+def token_ids_to_smiles(token_ids, tokenizer):
+    return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
+
+def calculate_properties(mol):
+    return {
+        'mw': Descriptors.MolWt(mol),
+        'logp': Descriptors.MolLogP(mol),
+        'hbd': rdMolDescriptors.CalcNumHBD(mol),
+        'hba': rdMolDescriptors.CalcNumHBA(mol)
+    }
+
+def is_similar(prop1, prop2, threshold=0.2):
+    for key in prop1:
+        if abs(prop1[key] - prop2[key]) > threshold:
+            return False
+    return True
+
+
+def postprocess_smiles(smiles_list, reference_smile):
+    reference_mol = Chem.MolFromSmiles(reference_smile)
+    reference_properties = calculate_properties(reference_mol)
+    processed_smiles = []
+
+    for smile in smiles_list:
+        try:
+            mol = Chem.MolFromSmiles(smile)
+            if mol:
+                canonical_smile = Chem.MolToSmiles(mol, isomericSmiles=True)
+                largest_fragment = max(canonical_smile.split('.'), key=len)
+                mol = Chem.MolFromSmiles(largest_fragment)
+
+                properties = calculate_properties(mol)
+                if is_similar(properties, reference_properties):
+                    processed_smiles.append({
+                        'smile': largest_fragment,
+                        **properties
+                    })
+            else:
+                processed_smiles.append({'smile': 'Invalid SMILES'})
+        except Exception as e:
+            processed_smiles.append({'smile': f"Error: {str(e)}"})
+
+    return processed_smiles
