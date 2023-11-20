@@ -94,7 +94,7 @@ The script relies on a selection of widely-used Python libraries:
 
 Ensure that these libraries are installed in your Python environment before executing the script.
 
-# CVAE for SMILES Molecular Structures Generation (cvae_0.03.py)
+# CVAE for SMILES Molecular Structures Generation (cvae_0.02.py)
 
 This project implements a Conditional Variational Autoencoder (CVAE) for generating molecular structures using the SMILES (Simplified Molecular Input Line Entry System) format. The model utilizes RoBERTa, a pre-trained language model, as the base for the encoder, and a custom decoder.
 
