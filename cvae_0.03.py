@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from transformers import RobertaTokenizer
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -97,7 +98,7 @@ def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimize
         # Treino
         cvae.train()
         train_loss = 0
-        for batch_idx, (input_ids, attention_mask) in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
+        for batch_idx, (input_ids, attention_mask) in enumerate(tqdm(train_dataloader, total=len(train_dataloader))):
             input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
             optimizer.zero_grad()
 
