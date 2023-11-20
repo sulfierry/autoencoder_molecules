@@ -86,7 +86,7 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
     # Perda total combinada
     return CE + beta * KLD
 
-def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval, accumulate_grad_steps=4):
+def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval, accumulate_grad_steps=2):
     scaler = GradScaler()  # Para precisão mista
 
     train_losses, val_losses, test_losses = [], [], []
