@@ -198,3 +198,77 @@ def postprocess_smiles(smiles_list, reference_smile):
             processed_smiles.append({'smile': f"Error: {str(e)}"})
 
     return processed_smiles
+
+
+import torch
+import torch.nn as nn
+from transformers import RobertaModel
+
+class CVAE(nn.Module):
+    """Autoencoder Variacional Condicional (CVAE) para manipulação de SMILES."""
+
+    def __init__(self, pretrained_model_name, latent_dim, vocab_size, max_sequence_length, device):
+        super(CVAE, self).__init__()
+        self.device = device
+        self.encoder = RobertaModel.from_pretrained(pretrained_model_name).to(self.device)
+
+        self.fc_mu = nn.Linear(self.encoder.config.hidden_size, latent_dim).to(self.device)
+        self.fc_var = nn.Linear(self.encoder.config.hidden_size, latent_dim).to(self.device)
+
+        self.max_sequence_length = max_sequence_length
+        self.vocab_size = vocab_size
+
+        # Tamanho de saída para o decodificador
+        decoder_output_size = max_sequence_length * vocab_size
+
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, self.encoder.config.hidden_size),
+            nn.ReLU(),
+            nn.Linear(self.encoder.config.hidden_size, decoder_output_size),
+            nn.LogSoftmax(dim=-1)
+        ).to(self.device)
+
+    def encode(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids.to(self.device), attention_mask=attention_mask.to(self.device))
+        last_hidden_states = outputs.last_hidden_state
+        pooled_output = torch.mean(last_hidden_states, dim=1)
+        mu = self.fc_mu(pooled_output)
+        log_var = self.fc_var(pooled_output)
+        return mu, log_var
+
+    def reparameterize(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std).to(self.device)
+        return mu + eps * std
+
+    def decode(self, z):
+        output = self.decoder(z)
+        output = output.view(-1, self.max_sequence_length, self.vocab_size)
+        return output
+
+    def forward(self, input_ids, attention_mask):
+        mu, log_var = self.encode(input_ids, attention_mask)
+        z = self.reparameterize(mu, log_var)
+        return self.decode(z), mu, log_var
+
+    def generate_molecule(self, z, tokenizer, method='sampling', top_k=50):
+        """ Gera uma molécula a partir de um vetor latente. """
+        self.eval()
+        with torch.no_grad():
+            recon_smiles_logits = self.decode(z.to(self.device))
+
+            if recon_smiles_logits.dim() != 3 or recon_smiles_logits.shape[1] != self.max_sequence_length:
+                raise ValueError(f"Dimension mismatch in logits: {recon_smiles_logits.shape}")
+
+            if method == 'argmax':
+                recon_smiles = torch.argmax(recon_smiles_logits, dim=2)
+            elif method == 'sampling':
+                probabilities = torch.nn.functional.softmax(recon_smiles_logits, dim=-1)
+                recon_smiles = torch.multinomial(probabilities.view(-1, self.vocab_size), 1)
+                recon_smiles = recon_smiles.view(-1, self.max_sequence_length)
+            else:
+                raise ValueError(f"Unsupported decoding method: {method}")
+
+            recon_smiles_decoded = tokenizer.decode(recon_smiles[0], skip_special_tokens=True)
+            return recon_smiles_decoded
+
