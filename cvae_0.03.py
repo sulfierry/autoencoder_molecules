@@ -82,3 +82,72 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
     # Perda total combinada
     return CE + beta * KLD
 
+import torch
+from torch.cuda.amp import GradScaler, autocast
+import matplotlib.pyplot as plt
+
+def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval):
+    scaler = GradScaler()  # Para precisão mista
+
+    train_losses, val_losses, test_losses = [], [], []
+
+    for epoch in range(num_epochs):
+        # Treino
+        cvae.train()
+        train_loss = 0
+        for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
+            input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+            optimizer.zero_grad()
+
+            with autocast():
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                loss = loss_function(recon_batch, input_ids, mu, logvar)
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            train_loss += loss.item()
+
+            if batch_idx % log_interval == 0:
+                print(f'Train Epoch: {epoch} [{batch_idx * len(input_ids)}/{len(train_dataloader.dataset)} ({100. * batch_idx / len(train_dataloader):.0f}%)]\tLoss: {loss.item() / len(input_ids):.6f}')
+
+        train_losses.append(train_loss / len(train_dataloader.dataset))
+
+        # Validação
+        cvae.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for input_ids, attention_mask in val_dataloader:
+                input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
+
+        val_losses.append(val_loss / len(val_dataloader.dataset))
+
+        # Teste
+        test_loss = 0
+        with torch.no_grad():
+            for input_ids, attention_mask in test_dataloader:
+                input_ids, attention_mask = input_ids.to(cvae.DEVICE), attention_mask.to(cvae.DEVICE)
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                test_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
+
+        test_losses.append(test_loss / len(test_dataloader.dataset))
+
+        print(f'Epoch: {epoch} Training Loss: {train_losses[-1]:.4f}, Validation Loss: {val_losses[-1]:.4f}, Test Loss: {test_losses[-1]:.4f}')
+
+    # Plotar o gráfico de perda por época
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_losses, label='Training Loss')
+    plt.plot(val_losses, label='Validation Loss')
+    plt.plot(test_losses, label='Test Loss')
+    plt.title('Loss vs. Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    plt.savefig('loss_epochs.png')
+
+    return train_losses, val_losses, test_losses
