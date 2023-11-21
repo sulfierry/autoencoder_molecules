@@ -35,29 +35,30 @@ class SmilesDataset(Dataset):
 
 
 def data_pre_processing(smiles_data, pretrained_model_name, batch_size, max_length, num_cpus):
-    """
-    Prepara os dados SMILES para treinamento, validação ou teste.
+   """
+   Prepara os dados SMILES para treinamento, validação ou teste.
 
-    Args:
-        smiles_data (pd.Series): Série Pandas contendo dados SMILES.
-        pretrained_model_name (str): Nome do modelo pré-treinado para o tokenizador.
-        batch_size (int): Tamanho do lote para o DataLoader.
-        max_length (int): Comprimento máximo da sequência de SMILES.
-        num_cpus (int): Número de CPUs a serem usadas para tokenização paralela.
+   Args:
+       smiles_data (pd.Series): Série Pandas contendo dados SMILES.
+       pretrained_model_name (str): Nome do modelo pré-treinado para o tokenizador.
+       batch_size (int): Tamanho do lote para o DataLoader.
+       max_length (int): Comprimento máximo da sequência de SMILES.
+       num_cpus (int): Número de CPUs a serem usadas para tokenização paralela.
 
-    Returns:
-        DataLoader: DataLoader pronto para ser usado no treinamento/validação/teste.
-    """
-    # Carregar o tokenizador
-    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
+   Returns:
+       DataLoader: DataLoader pronto para ser usado no treinamento/validação/teste.
+   """
+   # Carregar o tokenizador
+   tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
 
-    # Criar o dataset personalizado
-    dataset = SmilesDataset(smiles_data, tokenizer, max_length, num_cpus)
+   # Criar o dataset personalizado
+   dataset = SmilesDataset(smiles_data, tokenizer, max_length, num_cpus)
 
-    # Criar o DataLoader
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+   # Criar o DataLoader
+   dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_cpus, pin_memory=True)
 
-    return dataloader
+   return dataloader
+
 
 def loss_function(recon_x, x, mu, logvar, beta=1.0):
     """
