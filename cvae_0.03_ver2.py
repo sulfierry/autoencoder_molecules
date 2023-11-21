@@ -118,7 +118,7 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
     plt.legend()
     plt.grid(True)
     plt.show()
-    plt.savefig('loss_epochs.png')
+    plt.savefig('train_test_val.png')
 
     return epoch_losses
 
