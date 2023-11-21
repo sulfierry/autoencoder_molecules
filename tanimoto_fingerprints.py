@@ -25,15 +25,16 @@ def process_chunk(chunk, threshold):
     chunk['tanimoto_similarity'] = tanimoto_similarities
 
     # Filtrar com base no limiar de similaridade de Tanimoto
-    filtered_chunk = chunk[chunk['tanimoto_similarity'] >= threshold]
+    # filtered_chunk = chunk[chunk['tanimoto_similarity'] >= threshold]
+    filtered_chunk = chunk[chunk['tanimoto_similarity'] < threshold]
 
     return chunk, filtered_chunk
 
 
 # Função principal
 def main():
-    file_path = './similar_molecules_3.tsv'
-    threshold = 0.6
+    file_path = './similar_molecules_cos_similarity.tsv'
+    threshold = 0.5
     chunksize = 10000  # Ajuste este valor de acordo com a sua memória disponível
 
 
@@ -67,9 +68,10 @@ def main():
     filtered_data.sort_values(by='tanimoto_similarity', inplace=True)
 
     # Save the sorted DataFrame
-    filtered_data.to_csv('filtered_similar_molecules.tsv', sep='\t', index=False)
+    filtered_data.to_csv('tanimoto_filtered_similar_molecules_50s.tsv', sep='\t', index=False)
 
     print(filtered_data.head())
 
 if __name__ == "__main__":
     main()
+ 
