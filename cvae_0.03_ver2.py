@@ -15,8 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
 EPOCHS = 1000
-BATCH_SIZE = 4
-LATENT_DIM = 4
+BATCH_SIZE = 32
+LATENT_DIM = 768
 LEARNING_RATE = 1e-3
 LOG_INTERVAL = 10
 WEIGHT_DECAY = 1e-5 # regularizacao L2
@@ -155,7 +155,31 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
 
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
+    
+def data_pre_processing(smiles_data, pretrained_model_name, batch_size, max_length, num_cpus):
+    """
+    Prepara os dados SMILES para treinamento, validação ou teste.
 
+    Args:
+        smiles_data (pd.Series): Série Pandas contendo dados SMILES.
+        pretrained_model_name (str): Nome do modelo pré-treinado para o tokenizador.
+        batch_size (int): Tamanho do lote para o DataLoader.
+        max_length (int): Comprimento máximo da sequência de SMILES.
+        num_cpus (int): Número de CPUs a serem usadas para tokenização paralela.
+
+    Returns:
+        DataLoader: DataLoader pronto para ser usado no treinamento/validação/teste.
+    """
+    # Carregar o tokenizador
+    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
+
+    # Criar o dataset personalizado
+    dataset = SmilesDataset(smiles_data, tokenizer, max_length, num_cpus)
+
+    # Criar o DataLoader
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    return dataloader
 def postprocess_smiles(smiles_list, reference_smile):
     reference_mol = Chem.MolFromSmiles(reference_smile)
     reference_properties = calculate_properties(reference_mol)
