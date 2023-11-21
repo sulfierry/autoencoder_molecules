@@ -94,7 +94,7 @@ The script relies on a selection of widely-used Python libraries:
 
 Ensure that these libraries are installed in your Python environment before executing the script.
 
-# # CVAE for SMILES Data Processing (cvae_0.02.py)
+## CVAE for SMILES Data Processing (cvae_0.03.py)
 
 This code implements a Conditional Variational Autoencoder (CVAE) for processing and generating chemical structures represented in SMILES notation. The primary objective is to learn a generative model of chemical compounds using a deep learning approach.
 
