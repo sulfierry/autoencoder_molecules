@@ -95,45 +95,56 @@ The script relies on a selection of widely-used Python libraries:
 Ensure that these libraries are installed in your Python environment before executing the script.
 
 # CVAE for SMILES Molecular Structures Generation (cvae_0.02.py)
+# CVAE for SMILES Data Processing
 
-This project implements a Conditional Variational Autoencoder (CVAE) for generating molecular structures using the SMILES (Simplified Molecular Input Line Entry System) format. The model utilizes RoBERTa, a pre-trained language model, as the base for the encoder, and a custom decoder.
+This code implements a Conditional Variational Autoencoder (CVAE) for processing and generating chemical structures represented in SMILES notation. The primary objective is to learn a generative model of chemical compounds using a deep learning approach.
 
+## Modules and Libraries
+- `torch`: PyTorch library for tensor computations and neural network operations.
+- `pandas`: Data manipulation and analysis library.
+- `rdkit`: Collection of cheminformatics and machine learning tools.
+- `matplotlib.pyplot`: Library for creating static, animated, and interactive visualizations.
+- `transformers`: Hugging Face's library for state-of-the-art Natural Language Processing.
+- `sklearn.model_selection`: Scikit-learn module for splitting data arrays into train and test subsets.
+- `concurrent.futures`: Provides a high-level interface for asynchronously executing callables.
 
-## Key Components
+## Configuration
+- `DEVICE`: Specifies the device for computation (CPU or GPU).
+- `NUM_CPUS`: Number of CPU cores for parallel processing.
+- `EPOCHS`, `BATCH_SIZE`, `LATENT_DIM`, `LEARNING_RATE`, `LOG_INTERVAL`, `WEIGHT_DECAY`: Hyperparameters for the model and training process.
 
-- `SmilesDataset`: Class for reading and processing SMILES data.
-- `CVAE`: The core model with methods for encoding, reparameterization, and decoding.
-- `train_cvae`: Function to train the CVAE.
-- `generate_molecule`: Function to generate new molecular structures.
+## CVAE Model
+A PyTorch-based implementation of a Conditional Variational Autoencoder:
+- **Encoder**: Uses a pre-trained RobertaModel to encode the input SMILES data.
+- **Latent Space**: Maps the encoded representation to a latent space using linear transformations (`fc_mu` and `fc_var`).
+- **Decoder**: Reconstructs SMILES from the latent space representation.
 
+## Training Function (`train_cvae`)
+Handles the training process of the CVAE model. It freezes the encoder parameters for fine-tuning, uses gradient scaling for mixed precision training, and computes the training loss using backpropagation.
 
-## Model Workflow
+## DataLoader and Dataset
+- **SmilesDataset**: Custom dataset class for storing and tokenizing SMILES data. It uses parallel tokenization for efficiency.
+- **data_pre_processing**: Function to prepare DataLoader objects for training, validation, and testing phases.
 
-The model encodes SMILES inputs using RoBERTa, creates a latent space, and decodes to generate new SMILES structures.
+## Utility Functions
+- `smiles_to_token_ids_parallel`: Converts SMILES strings to token IDs in parallel.
+- `token_ids_to_smiles`: Decodes token IDs back to SMILES strings.
+- `postprocess_smiles`: Post-processes generated SMILES for validation and analysis.
+- `calculate_properties`, `is_similar`: Functions to calculate chemical properties and assess similarity.
 
-## Model Parameters
-
-- `LATENT_DIM`: Dimension of the latent space.
-- `BATCH_SIZE`, `LEARNING_RATE`, `WEIGHT_DECAY`: Training parameters.
-- `EPOCHS`: Number of training epochs.
-
+## Main Function
+Executes the entire pipeline:
+1. Loads and preprocesses SMILES data.
+2. Initializes and trains the CVAE model.
+3. Saves the trained model and outputs training progress.
 
 ## Usage
+To run the code, ensure all dependencies are installed and execute the script. The model will train on the specified SMILES dataset and save the trained model for future use.
 
-- The model is trained on a dataset of SMILES strings.
-- It can generate new molecular structures based on the learned latent space.
+---
 
-## Dependencies
+This implementation serves as a robust framework for exploring generative models in cheminformatics, enabling the generation of novel chemical structures with desired properties.
 
-- PyTorch for model implementation.
-- Transformers library for the pre-trained RoBERTa model.
-- Other standard Python libraries for data handling and visualization.
-
-## Installation and Execution
-
-- Clone the repository.
-- Install required dependencies.
-- Run the script with appropriate dataset and parameters.
 
 ## Contributing
 
