@@ -128,24 +128,27 @@ def loss_function(recon_x, x, mu, logvar):
 
     return CE + KLD
 
+
 class SmilesDataset(Dataset):
-    def __init__(self, file_path, tokenizer, max_length=512):
-        self.data = pd.read_csv(file_path, sep='\t')
+    """ Dataset personalizado para armazenar e tokenizar dados SMILES. """
+
+    def __init__(self, smiles_list, tokenizer, max_length, num_cpus):
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.smiles_list = self.parallel_tokenization(smiles_list, num_cpus)
+
+    def parallel_tokenization(self, smiles_list, num_cpus):
+        """ Tokeniza SMILES em paralelo para acelerar o processamento. """
+        with ThreadPoolExecutor(max_workers=num_cpus) as executor:
+            futures = [executor.submit(self.tokenizer, smile, return_tensors='pt', padding='max_length', truncation=True, max_length=self.max_length) for smile in smiles_list]
+            return [future.result() for future in as_completed(futures)]
 
     def __len__(self):
-        return len(self.data)
+        return len(self.smiles_list)
 
     def __getitem__(self, idx):
-        smile = self.data.iloc[idx]['canonical_smiles'] # nome do cabecalho para identificar a coluna
-        inputs = self.tokenizer(smile, return_tensors='pt', max_length=self.max_length, padding='max_length', truncation=True)
+        return self.smiles_list[idx]['input_ids'].squeeze(0), self.smiles_list[idx]['attention_mask'].squeeze(0)
         
-        input_ids, attention_mask = inputs['input_ids'].squeeze(0), inputs['attention_mask'].squeeze(0)
-        if input_ids.dim() != 1 or attention_mask.dim() != 1:
-            raise ValueError(f"Dimension mismatch: input_ids.dim()={input_ids.dim()}, attention_mask.dim()={attention_mask.dim()}")
-
-        return input_ids, attention_mask
 
 def smiles_to_token_ids_parallel(smiles_list, tokenizer):
     with ThreadPoolExecutor(max_workers=NUM_CPUS) as executor:
@@ -153,9 +156,11 @@ def smiles_to_token_ids_parallel(smiles_list, tokenizer):
         results = [future.result() for future in as_completed(futures)]
     return [res['input_ids'] for res in results], [res['attention_mask'] for res in results]
 
+
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
-    
+
+
 def data_pre_processing(smiles_data, pretrained_model_name, batch_size, max_length, num_cpus):
     """
     Prepara os dados SMILES para treinamento, validação ou teste.
@@ -174,12 +179,14 @@ def data_pre_processing(smiles_data, pretrained_model_name, batch_size, max_leng
     tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
 
     # Criar o dataset personalizado
-    dataset = SmilesDataset(smiles_data, tokenizer, max_length, num_cpus)
+    dataset = SmilesDataset(smiles_data.tolist(), tokenizer, max_length, num_cpus)
 
     # Criar o DataLoader
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     return dataloader
+
+
 def postprocess_smiles(smiles_list, reference_smile):
     reference_mol = Chem.MolFromSmiles(reference_smile)
     reference_properties = calculate_properties(reference_mol)
