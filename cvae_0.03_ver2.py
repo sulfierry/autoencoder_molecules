@@ -119,6 +119,100 @@ def train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, log_interval)
 
     return epoch_losses
 
+def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval, accumulate_grad_steps=4):
+    scaler = GradScaler()  # For mixed precision
+
+    # Freezing encoder parameters and enabling grad for decoder and reparameterization layers
+    for param in cvae.encoder.parameters():
+        param.requires_grad = False
+
+    for param in cvae.decoder.parameters():
+        param.requires_grad = True
+
+    for param in cvae.fc_mu.parameters():
+        param.requires_grad = True
+
+    for param in cvae.fc_var.parameters():
+        param.requires_grad = True
+
+    train_losses, val_losses, test_losses = [], [], []
+
+    for epoch in range(num_epochs):
+        print(f"Epoch {epoch+1}/{num_epochs}")
+        print("Training...")
+
+        cvae.train()
+        train_loss = 0
+        optimizer.zero_grad()  # Reset gradients at the start of each epoch
+
+        for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
+            # Move batch to CUDA
+            input_ids, attention_mask = input_ids.to(DEVICE), attention_mask.to(DEVICE)
+
+            # Forward pass
+            with autocast():
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                loss = loss_function(recon_batch, input_ids, mu, logvar) / accumulate_grad_steps
+
+            # Backward pass (accumulate gradients)
+            scaler.scale(loss).backward()
+
+            # Update model weights and reset gradients after specified steps
+            if (batch_idx + 1) % accumulate_grad_steps == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+
+            train_loss += loss.item()
+
+            if batch_idx % log_interval == 0:
+                print(f'\tTrain Batch {batch_idx}. Loss: {loss.item() / len(input_ids):.6f}')
+
+        epoch_train_loss = train_loss / len(train_dataloader.dataset)
+        train_losses.append(epoch_train_loss)
+
+        # Validation
+        cvae.eval()
+        val_loss = 0
+        with torch.no_grad():
+            print("Validating...")
+            for input_ids, attention_mask in val_dataloader:
+                input_ids, attention_mask = input_ids.to(DEVICE), attention_mask.to(DEVICE)
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
+        
+        epoch_val_loss = val_loss / len(val_dataloader.dataset)
+        val_losses.append(epoch_val_loss)
+
+        # Testing
+        test_loss = 0
+        with torch.no_grad():
+            print("Testing...")
+            for input_ids, attention_mask in test_dataloader:
+                input_ids, attention_mask = input_ids.to(DEVICE), attention_mask.to(DEVICE)
+                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+                test_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
+
+        epoch_test_loss = test_loss / len(test_dataloader.dataset)
+        test_losses.append(epoch_test_loss)
+
+        print(f'Epoch Summary: Train Loss: {epoch_train_loss:.6f}, Validation Loss: {epoch_val_loss:.6f}, Test Loss: {epoch_test_loss:.6f}')
+
+    # Plotting the training, validation, and testing losses
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_losses, label='Training Loss')
+    plt.plot(val_losses, label='Validation Loss')
+    plt.plot(test_losses, label='Test Loss')
+    plt.title('Loss vs. Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return train_losses, val_losses, test_losses
+
+
 def loss_function(recon_x, x, mu, logvar):
     if recon_x.dim() != 3:
         raise ValueError(f"recon_x should be 3-dimensional, but got shape {recon_x.shape}")
@@ -273,7 +367,7 @@ def main():
     # Inicializar o modelo CVAE
     latent_dim = 768
     vocab_size = 50265
-    cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length, DEVICE).to(DEVICE)
+    cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length)
 
     # Inicializar o otimizador
     optimizer = torch.optim.Adam(cvae_model.parameters(), lr=LEARNING_RATE)
