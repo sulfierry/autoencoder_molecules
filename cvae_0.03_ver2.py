@@ -273,7 +273,7 @@ def main():
     # Inicializar o modelo CVAE
     latent_dim = 768
     vocab_size = 50265
-    cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length, DEVICE).to(DEVICE)
+    cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length).to(DEVICE)
 
     # Inicializar o otimizador
     optimizer = torch.optim.Adam(cvae_model.parameters(), lr=LEARNING_RATE)
