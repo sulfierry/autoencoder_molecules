@@ -88,86 +88,87 @@ def loss_function(recon_x, x, mu, logvar, beta=1.0):
     return CE + beta * KLD
 
 def train_cvae(cvae, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval, accumulate_grad_steps=2):
-    scaler = GradScaler()  # Para precisão mista
+   scaler = GradScaler() # Para precisão mista
 
-    train_losses, val_losses, test_losses = [], [], []
+   train_losses, val_losses, test_losses = [], [], []
 
-    for epoch in range(num_epochs):
-        print(f"Epoch {epoch+1}/{num_epochs}")
-        print("Training...")
+   for epoch in range(num_epochs):
+       print(f"Epoch {epoch+1}/{num_epochs}")
+       print("Training...")
 
-        # Treino
-        cvae.train()
-        train_loss = 0
-        for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
-            input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+       # Treino
+       cvae.train()
+       train_loss = 0
+       for batch_idx, (input_ids, attention_mask) in enumerate(train_dataloader):
+           input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
 
-            # Inicializa o acumulador de gradiente
-            optimizer.zero_grad()
+           # Inicializa o acumulador de gradiente
+           optimizer.zero_grad()
 
-            for i in range(accumulate_grad_steps):
-                start_idx = i * len(input_ids)
-                end_idx = start_idx + len(input_ids)
-                sub_input_ids = input_ids[start_idx:end_idx]
-                sub_attention_mask = attention_mask[start_idx:end_idx]
+           for i in range(accumulate_grad_steps):
+               start_idx = i * len(input_ids)
+               end_idx = start_idx + len(input_ids)
+               sub_input_ids = input_ids[start_idx:end_idx]
+               sub_attention_mask = attention_mask[start_idx:end_idx]
 
-                with autocast():
-                    recon_batch, mu, logvar = cvae(sub_input_ids, sub_attention_mask)
-                    loss = loss_function(recon_batch, sub_input_ids, mu, logvar) / accumulate_grad_steps
+               with autocast():
+                  recon_batch, mu, logvar = cvae(sub_input_ids, sub_attention_mask)
+                  loss = loss_function(recon_batch, sub_input_ids, mu, logvar) / accumulate_grad_steps
 
-                scaler.scale(loss).backward()
+               scaler.scale(loss).backward()
 
-            scaler.step(optimizer)
-            scaler.update()
+           scaler.step(optimizer)
+           scaler.update()
 
-            train_loss += loss.item()
+           train_loss += loss.item()
 
-            if batch_idx % log_interval == 0:
-                print(f'\tTrain Batch {batch_idx}. Loss: {loss.item() / len(input_ids):.6f}')
+           if batch_idx % log_interval == 0:
+               print(f'\tTrain Batch {batch_idx}. Loss: {loss.item() / len(input_ids):.6f}')
 
-        epoch_train_loss = train_loss / len(train_dataloader.dataset)
-        train_losses.append(epoch_train_loss)
+       epoch_train_loss = train_loss / len(train_dataloader.dataset)
+       train_losses.append(epoch_train_loss)
 
-        # Validação
-        cvae.eval()
-        val_loss = 0
-        with torch.no_grad():
-            print("Validating...")
-            for input_ids, attention_mask in val_dataloader:
-                input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
-                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
-                val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
+       # Validação
+       cvae.eval()
+       val_loss = 0
+       with torch.no_grad():
+           print("Validating...")
+           for input_ids, attention_mask in val_dataloader:
+               input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+               recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+               val_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
-        epoch_val_loss = val_loss / len(val_dataloader.dataset)
-        val_losses.append(epoch_val_loss)
+       epoch_val_loss = val_loss / len(val_dataloader.dataset)
+       val_losses.append(epoch_val_loss)
 
-        # Teste
-        test_loss = 0
-        with torch.no_grad():
-            print("Testing...")
-            for input_ids, attention_mask in test_dataloader:
-                input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
-                recon_batch, mu, logvar = cvae(input_ids, attention_mask)
-                test_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
+       # Teste
+       test_loss = 0
+       with torch.no_grad():
+           print("Testing...")
+           for input_ids, attention_mask in test_dataloader:
+               input_ids, attention_mask = input_ids.to(cvae.device), attention_mask.to(cvae.device)
+               recon_batch, mu, logvar = cvae(input_ids, attention_mask)
+               test_loss += loss_function(recon_batch, input_ids, mu, logvar).item()
 
-        epoch_test_loss = test_loss / len(test_dataloader.dataset)
-        test_losses.append(epoch_test_loss)
+       epoch_test_loss = test_loss / len(test_dataloader.dataset)
+       test_losses.append(epoch_test_loss)
 
-        print(f'Epoch Summary: Train Loss: {epoch_train_loss:.6f}, Validation Loss: {epoch_val_loss:.6f}, Test Loss: {epoch_test_loss:.6f}')
+       print(f'Epoch Summary: Train Loss: {epoch_train_loss:.6f}, Validation Loss: {epoch_val_loss:.6f}, Test Loss: {epoch_test_loss:.6f}')
 
-    # Plotar o gráfico de perda por época
-    plt.figure(figsize=(10, 6))
-    plt.plot(train_losses, label='Training Loss')
-    plt.plot(val_losses, label='Validation Loss')
-    plt.plot(test_losses, label='Test Loss')
-    plt.title('Loss vs. Epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+   # Plotar o gráfico de perda por época
+   plt.figure(figsize=(10, 6))
+   plt.plot(train_losses, label='Training Loss')
+   plt.plot(val_losses, label='Validation Loss')
+   plt.plot(test_losses, label='Test Loss')
+   plt.title('Loss vs. Epochs')
+   plt.xlabel('Epoch')
+   plt.ylabel('Loss')
+   plt.legend()
+   plt.grid(True)
+   plt.show()
 
-    return train_losses, val_losses, test_losses
+   return train_losses, val_losses, test_losses
+
 
 def token_ids_to_smiles(token_ids, tokenizer):
     return tokenizer.decode(token_ids.tolist(), skip_special_tokens=True)
