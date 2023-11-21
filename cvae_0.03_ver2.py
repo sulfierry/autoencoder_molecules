@@ -1,19 +1,16 @@
 import os
-import time
 import torch
 import pandas as pd
-from torch import nn
+import torch.nn as nn
 from rdkit import Chem
-from tqdm.auto import tqdm
-import torch.optim as optim
 import matplotlib.pyplot as plt
-from torch.nn import functional as F
+import torch.nn.functional as F
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Dataset
-from transformers import RobertaTokenizer, RobertaModel
-from rdkit.Chem import Descriptors, rdMolDescriptors, AllChem
+from sklearn.model_selection import train_test_split
+from rdkit.Chem import Descriptors, rdMolDescriptors
+from transformers import RobertaModel, RobertaTokenizer
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
 # Configurações básicas
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CPUS = os.cpu_count()
@@ -217,95 +214,48 @@ def is_similar(prop1, prop2, threshold=0.2):
             return False
     return True
 
-def main(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE):
-    start_time = time.time()
 
-    # Carrega o tokenizador
-    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
-    vocab_size = tokenizer.vocab_size
+def main():
+    print("Carregando dados...")
+    # Carregar dados
+    chembl_file_path = './filtered_chembl33_IC50_Kd_ki.tsv'
+    chembl_data = pd.read_csv(chembl_file_path, sep='\t')
+    smiles_data = chembl_data['canonical_smiles']
 
-    # Instancia o CVAE
-    cvae = CVAE(pretrained_model_name, LATENT_DIM, vocab_size, tokenizer.model_max_length).to(DEVICE)
-
-    # Prepara o dataset e o dataloader
-    dataset = SmilesDataset(pkidb_file_path, tokenizer, max_length=tokenizer.model_max_length)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_CPUS)
-
-    # Configura o otimizador
-    optimizer = optim.Adam(cvae.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-
-    # Treina o CVAE
-    train_cvae(cvae, dataloader, optimizer, num_epochs, tokenizer, LOG_INTERVAL)
-
-    # Prepara o SMILES de entrada
-    input_ids, attention_mask = smiles_to_token_ids_parallel([smiles_input], tokenizer)
-
-    # Convertendo listas em tensores e movendo para o dispositivo adequado
-    input_ids = torch.cat(input_ids).to(DEVICE)
-    attention_mask = torch.cat(attention_mask).to(DEVICE)
-
-    # Gera o vetor latente e a molécula
-    cvae.eval()  # Modo de avaliação
-    with torch.no_grad():
-        z = cvae.encode(input_ids, attention_mask)[0]
-        z = z.unsqueeze(0)  # Para compatibilidade de formato
-        generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
-
-    # Pós-processamento e validação de SMILES
-    processed_smiles = postprocess_smiles([generated_smile], smiles_input)
-
-    # Salvar em CSV
-    pd.DataFrame({'Generated_SMILES': processed_smiles}).to_csv('generated_molecules.csv', index=False)
-
-    # Salvar o estado do modelo
-    torch.save(cvae.state_dict(), 'cvae_finetuned.pth')
-
-    print(f"Generated SMILES: {generated_smile}")
-
-    # Cronometra e imprime o tempo total de execução
-    end_time = time.time()
-    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
-
-    # Liberação de memória da GPU
-    del cvae
-    torch.cuda.empty_cache()
-
-def load_pre_trained(smiles_input, pretrained_model_name, pkidb_file_path, num_epochs=EPOCHS, batch_size=BATCH_SIZE, cvae_model_path=None):
-    start_time = time.time()
-
-    tokenizer = RobertaTokenizer.from_pretrained(pretrained_model_name)
-    vocab_size = tokenizer.vocab_size
-
-    cvae = CVAE(pretrained_model_name, LATENT_DIM, vocab_size, tokenizer.model_max_length).to(DEVICE)
-    cvae.load_state_dict(torch.load(cvae_model_path))
-
-    input_ids, attention_mask = smiles_to_token_ids_parallel([smiles_input], tokenizer)
-    input_ids = torch.cat(input_ids).to(DEVICE)
-    attention_mask = torch.cat(attention_mask).to(DEVICE)
-
-    cvae.eval()
-    with torch.no_grad():
-        z = cvae.encode(input_ids, attention_mask)[0]
-        z = z.unsqueeze(0)
-
-        generated_smile = generate_molecule(cvae, z, tokenizer, method='sampling')
-
-    print(f"Generated SMILES: {generated_smile}")
-
-    end_time = time.time()
-    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
-
-    del cvae
-    torch.cuda.empty_cache()
-
-if __name__ == '__main__':
-    smiles_input = 'C1=CC(=CC=C1NC(=O)C[C@@H](C(=O)O)N)OC2=CC(=C(C=C2Br)F)F'
+    # Parâmetros
     pretrained_model_name = 'seyonec/ChemBERTa-zinc-base-v1'
-    pkidb_file_path = './filtered_chembl33_IC50_Kd_ki.tsv'
+    batch_size = 32
+    max_length = 512
+    num_epochs = 10
+    log_interval = 100
 
-    # Executa a função principal
-    main(smiles_input, pretrained_model_name, pkidb_file_path)
+    # Divisão dos dados em conjuntos de treino, validação e teste
+    train_data, test_data = train_test_split(smiles_data, test_size=0.2, random_state=42)
+    train_data, val_data = train_test_split(train_data, test_size=0.25, random_state=42)
 
-    # Ou, para carregar um modelo pré-treinado
-    # cvae_model_path = './cvae_finetuned.pth'
-    # load_pre_trained(smiles_input, pretrained_model_name, pkidb_file_path, cvae_model_path)
+    # Preparar DataLoaders
+    print("Preparando DataLoaders...")
+    train_dataloader = data_pre_processing(train_data, pretrained_model_name, batch_size, max_length, NUM_CPUS)
+    val_dataloader = data_pre_processing(val_data, pretrained_model_name, batch_size, max_length, NUM_CPUS)
+    test_dataloader = data_pre_processing(test_data, pretrained_model_name, batch_size, max_length, NUM_CPUS)
+
+    # Inicializar o modelo CVAE
+    latent_dim = 768
+    vocab_size = 50265
+    cvae_model = CVAE(pretrained_model_name, latent_dim, vocab_size, max_length, DEVICE).to(DEVICE)
+
+    # Inicializar o otimizador
+    optimizer = torch.optim.Adam(cvae_model.parameters(), lr=LEARNING_RATE)
+
+    # Treinar o modelo
+    print("Iniciando treinamento...")
+    train_losses, val_losses, test_losses = train_cvae(cvae_model, train_dataloader, val_dataloader, test_dataloader, optimizer, num_epochs, log_interval)
+
+    print("Treinamento concluído. Salvando o modelo...")
+    model_save_path = "./cvae_model.pth"
+    torch.save(cvae_model.state_dict(), model_save_path)
+    print(f"Modelo salvo em {model_save_path}")
+
+if __name__ == "__main__":
+    main()
+
