@@ -1,3 +1,5 @@
+# compara os fingerprints do pkidb com cada chunk do ChEMBL, acumulando os SMILES não correspondentes do pkidb.
+    
 import pandas as pd
 import numpy as np
 from rdkit import Chem
