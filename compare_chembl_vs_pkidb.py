@@ -44,3 +44,7 @@ with ProcessPoolExecutor(max_workers=cpu_count) as executor:
     
     for future in futures:
         non_matching_results.extend(future.result())
+
+
+# Concatenar todos os resultados não correspondentes
+final_non_matching_smiles = np.concatenate(non_matching_results)
