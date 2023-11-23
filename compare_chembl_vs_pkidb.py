@@ -14,3 +14,7 @@ def process_chunk(chunk, pkidb_fingerprints):
             non_matching_smiles.append(row['canonical_smiles'])
     return non_matching_smiles
 
+
+def smiles_to_fingerprint(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    return rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2)
