@@ -25,7 +25,7 @@ def process_chunk(chunk, pkidb_fingerprints):
     return non_matching_smiles
 
 # Carregar os SMILES do pkidb
-pkidb_smiles = pd.read_csv('/mnt/data/pkidb_2023-06-30.tsv', sep='\t')
+pkidb_smiles = pd.read_csv('./pkidb_2023-06-30.tsv', sep='\t')
 pkidb_smiles['fingerprint'] = pkidb_smiles['Canonical_Smiles'].apply(smiles_to_fingerprint)
 
 # Preparar a lista de fingerprints do pkidb para comparação
@@ -40,14 +40,19 @@ non_matching_results = []
 
 with ProcessPoolExecutor(max_workers=cpu_count) as executor:
     futures = []
-    for chunk in tqdm(pd.read_csv('/mnt/data/chembl_33_molecules.tsv', sep='\t', chunksize=chunksize)):
+    for chunk in tqdm(pd.read_csv('./chembl_33_molecules.tsv', sep='\t', chunksize=chunksize)):
         futures.append(executor.submit(process_chunk, chunk, pkidb_fingerprints))
 
+    # Coletar os resultados de cada futuro
     for future in as_completed(futures):
-        non_matching_results.extend(future.result())
+        non_matching_results.append(future.result())
 
-# Certificar-se de que todos os elementos são listas antes de concatenar
-final_non_matching_smiles = np.concatenate([result for result in non_matching_results if isinstance(result, list)])
+# Função para achatar uma lista de listas
+def flatten_list_of_lists(lst):
+    return [item for sublist in lst for item in sublist]
+
+# Achatando os resultados em uma única lista
+final_non_matching_smiles = flatten_list_of_lists(non_matching_results)
 
 # Salvar os SMILES não correspondentes em um arquivo .tsv
-pd.DataFrame(final_non_matching_smiles, columns=['canonical_smiles']).to_csv('/mnt/data/non_matching_smiles.tsv', sep='\t', index=False)
+pd.DataFrame(final_non_matching_smiles, columns=['canonical_smiles']).to_csv('./non_matching_smiles.tsv', sep='\t', index=False)
