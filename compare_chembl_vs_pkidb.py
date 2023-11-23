@@ -16,43 +16,33 @@ def smiles_to_fingerprint(smiles):
         return None
     return None
 
-def process_chunk(chunk, pkidb_fingerprints):
-    non_matching_smiles = []
-    for _, row in chunk.iterrows():
-        chembl_fp = smiles_to_fingerprint(row['canonical_smiles'])
-        if chembl_fp is not None and not any(DataStructs.FingerprintSimilarity(chembl_fp, fp) == 1.0 for fp in pkidb_fingerprints if fp is not None):
-            non_matching_smiles.append(row['canonical_smiles'])
-    return non_matching_smiles
+def process_chunk(chunk, pkidb_fingerprints, pkidb_smiles):
+    non_matching_smiles_pkidb = []
+    for pkidb_fp, pkidb_smile in zip(pkidb_fingerprints, pkidb_smiles):
+        if not any(DataStructs.FingerprintSimilarity(pkidb_fp, smiles_to_fingerprint(row['canonical_smiles'])) == 1.0 for _, row in chunk.iterrows() if pkidb_fp is not None):
+            non_matching_smiles_pkidb.append(pkidb_smile)
+    return non_matching_smiles_pkidb
 
 # Carregar os SMILES do pkidb
 pkidb_smiles = pd.read_csv('./pkidb_2023-06-30.tsv', sep='\t')
 pkidb_smiles['fingerprint'] = pkidb_smiles['Canonical_Smiles'].apply(smiles_to_fingerprint)
-
-# Preparar a lista de fingerprints do pkidb para comparação
-pkidb_fingerprints = [fp for fp in pkidb_smiles['fingerprint'].tolist() if fp is not None]
+pkidb_fingerprints = pkidb_smiles['fingerprint'].tolist()
+pkidb_smiles_list = pkidb_smiles['Canonical_Smiles'].tolist()
 
 # Utilizar todas as CPUs disponíveis
 cpu_count = os.cpu_count()
 
 # Processar o arquivo ChEMBL em partes
 chunksize = 10240
-non_matching_results = []
+non_matching_results_pkidb = []
 
 with ProcessPoolExecutor(max_workers=cpu_count) as executor:
     futures = []
     for chunk in tqdm(pd.read_csv('./chembl_33_molecules.tsv', sep='\t', chunksize=chunksize)):
-        futures.append(executor.submit(process_chunk, chunk, pkidb_fingerprints))
+        futures.append(executor.submit(process_chunk, chunk, pkidb_fingerprints, pkidb_smiles_list))
 
-    # Coletar os resultados de cada futuro
     for future in as_completed(futures):
-        non_matching_results.append(future.result())
+        non_matching_results_pkidb.extend(future.result())
 
-# Função para achatar uma lista de listas
-def flatten_list_of_lists(lst):
-    return [item for sublist in lst for item in sublist]
-
-# Achatando os resultados em uma única lista
-final_non_matching_smiles = flatten_list_of_lists(non_matching_results)
-
-# Salvar os SMILES não correspondentes em um arquivo .tsv
-pd.DataFrame(final_non_matching_smiles, columns=['canonical_smiles']).to_csv('./non_matching_smiles.tsv', sep='\t', index=False)
+# Salvar os SMILES não correspondentes do pkidb em um arquivo .tsv
+pd.DataFrame(non_matching_results_pkidb, columns=['Canonical_Smiles']).to_csv('./non_matching_smiles_pkidb.tsv', sep='\t', index=False)
