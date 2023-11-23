@@ -48,3 +48,8 @@ with ProcessPoolExecutor(max_workers=cpu_count) as executor:
 
 # Concatenar todos os resultados não correspondentes
 final_non_matching_smiles = np.concatenate(non_matching_results)
+
+
+
+# Salvar os SMILES não correspondentes em um arquivo .tsv
+pd.DataFrame(final_non_matching_smiles, columns=['canonical_smiles']).to_csv('/mnt/data/non_matching_smiles.tsv', sep='\t', index=False)
