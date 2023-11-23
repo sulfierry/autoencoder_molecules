@@ -25,3 +25,12 @@ def smiles_to_fingerprint(smiles):
 pkidb_smiles = pd.read_csv('/mnt/data/pkidb_2023-06-30.tsv', sep='\t')
 pkidb_smiles['fingerprint'] = pkidb_smiles['Canonical_Smiles'].apply(smiles_to_fingerprint)
 
+# Preparar a lista de fingerprints do pkidb para comparação
+pkidb_fingerprints = pkidb_smiles['fingerprint'].tolist()
+
+# Processar o arquivo ChEMBL em partes
+chunksize = 10000  # Ajuste conforme necessário
+non_matching_results = []
+
+# Utilizar todas as CPUs disponíveis
+cpu_count = os.cpu_count()
