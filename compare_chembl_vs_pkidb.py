@@ -34,3 +34,13 @@ non_matching_results = []
 
 # Utilizar todas as CPUs disponíveis
 cpu_count = os.cpu_count()
+
+
+
+with ProcessPoolExecutor(max_workers=cpu_count) as executor:
+    futures = []
+    for chunk in pd.read_csv('/mnt/data/chembl_33_molecules.tsv', sep='\t', chunksize=chunksize):
+        futures.append(executor.submit(process_chunk, chunk, pkidb_fingerprints))
+    
+    for future in futures:
+        non_matching_results.extend(future.result())
