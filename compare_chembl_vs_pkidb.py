@@ -35,7 +35,7 @@ pkidb_fingerprints = [fp for fp in pkidb_smiles['fingerprint'].tolist() if fp is
 cpu_count = os.cpu_count()
 
 # Processar o arquivo ChEMBL em partes
-chunksize = 10000  # Ajuste conforme necessário
+chunksize = 10000
 non_matching_results = []
 
 with ProcessPoolExecutor(max_workers=cpu_count) as executor:
@@ -46,8 +46,8 @@ with ProcessPoolExecutor(max_workers=cpu_count) as executor:
     for future in as_completed(futures):
         non_matching_results.extend(future.result())
 
-# Concatenar todos os resultados não correspondentes
-final_non_matching_smiles = np.concatenate(non_matching_results)
+# Certificar-se de que todos os elementos são listas antes de concatenar
+final_non_matching_smiles = np.concatenate([result for result in non_matching_results if isinstance(result, list)])
 
 # Salvar os SMILES não correspondentes em um arquivo .tsv
 pd.DataFrame(final_non_matching_smiles, columns=['canonical_smiles']).to_csv('/mnt/data/non_matching_smiles.tsv', sep='\t', index=False)
