@@ -35,7 +35,7 @@ pkidb_fingerprints = [fp for fp in pkidb_smiles['fingerprint'].tolist() if fp is
 cpu_count = os.cpu_count()
 
 # Processar o arquivo ChEMBL em partes
-chunksize = 10000
+chunksize = 10240
 non_matching_results = []
 
 with ProcessPoolExecutor(max_workers=cpu_count) as executor:
