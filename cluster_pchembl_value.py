@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -25,12 +24,12 @@ def pchembl_group(value):
         return 'grupo2 (7 - 8)'
     elif 8 <= value < 9:
         return 'grupo3 (8 - 9)'
-    elif 9 <= value < 11:
-        return 'grupo4 (9 - 11)'
-    elif value > 12:
-        return '> 12'
+    elif 9 <= value < 10:
+        return 'grupo4 (9 - 10)'
+    elif 10 <= value < 11:
+        return 'grupo5 (10 - 11)'
     else:
-        return 'outros'
+        return '>12'
 
 # Função de plotagem 2D
 def plot_2d_tsne(tsne_df):
