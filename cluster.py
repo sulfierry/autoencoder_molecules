@@ -192,8 +192,9 @@ class TSNEClusterer:
 def calculate_tsne_parallel(tsne_clusterer, group):
     group_data = tsne_clusterer.data[tsne_clusterer.data['pchembl_group'] == group]
     return tsne_clusterer.calculate_tsne_for_group(group_data)
-    
-def main():
+
+
+  def main():
     tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
     tsne_clusterer.load_data()
     tsne_clusterer.preprocess_data()
@@ -207,6 +208,9 @@ def main():
             if result is not None:
                 tsne_clusterer.tsne_results.extend(result)
                 tsne_clusterer.group_labels.extend([group] * len(result))
+
+    tsne_clusterer.tsne_df = pd.DataFrame(tsne_clusterer.tsne_results, columns=['x', 'y'])
+    tsne_clusterer.tsne_df['group'] = tsne_clusterer.group_labels
 
     # Continuar com o restante da execução
     tsne_clusterer.plot_tsne()
