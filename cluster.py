@@ -15,7 +15,8 @@ class TSNEClusterer:
         self.pkidb_path = pkidb_path
         self.data = None
         self.pkidb_data = None
-        self.tsne_df = None
+        self.tsne_results = []  # Inicializa a lista aqui
+        self.group_labels = []  # Inicializa a lista aq
 
     def load_data(self):
         self.data = pd.read_csv(self.data_path, sep='\t')
