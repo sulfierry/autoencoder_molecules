@@ -19,16 +19,20 @@ def smiles_to_fingerprint(smiles):
 def pchembl_group(value):
     if pd.isna(value):
         return 'sem_pchembl'
-    elif 1 < value < 4:
-        return 'grupo1'
-    elif 4 <= value < 6:
-        return 'grupo2'
+    elif 1 < value < 6:
+        return 'grupo1 (1 - 6)'
     elif 6 <= value < 8:
-        return 'grupo3'
-    elif 8 <= value <= 10:
-        return 'grupo4'
+        return 'grupo2 (6 - 8)'
+    elif 8 <= value < 10:
+        return 'grupo3 (8 - 10)'
+    elif 10 <= value <= 12:
+        return 'grupo4 (10 - 12)'
+    elif value > 12:
+        return '> 12'
     else:
         return 'outros'
+
+
 # Aplicar agrupamento
 data['pchembl_group'] = data['pchembl_value'].apply(pchembl_group)
 
