@@ -91,6 +91,9 @@ for group in data['pchembl_group'].unique():
 tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y', 'z'])
 tsne_df['group'] = group_labels
 
+# Ordem desejada para os grupos
+group_order = ['grupo1 (1 - 7)', 'grupo2 (7 - 8)', 'grupo3 (8 - 9)', 'grupo4 (9 - 10)', 'grupo5 (10 - 11)', '>12']
+
 # Chamar funções de plotagem conforme necessário
-plot_2d_tsne(tsne_df)
-# plot_3d_tsne(tsne_df)  # Descomente esta linha para plotar em 3D
+plot_2d_tsne(tsne_df, group_order)
+# plot_3d_tsne(tsne_df, group_order)  # Descomente esta linha para plotar em 3D
