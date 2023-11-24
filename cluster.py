@@ -88,13 +88,14 @@ class TSNEClusterer:
         group_labels = []
     
         # Definir uma função interna para calcular t-SNE para um grupo específico
-        def calculate_tsne_for_group(group_data, group):
+        def calculate_tsne_for_group(self, group_data):
             fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
             fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
             if len(fingerprints_matrix) > 5:
                 tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
                 tsne_result = tsne.fit_transform(fingerprints_matrix)
-                return tsne_result, group
+                return tsne_result, group_data['pchembl_group'].iloc[0]
+
     
         # Utilizar todas as CPUs disponíveis para calcular t-SNE em paralelo para cada grupo
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
