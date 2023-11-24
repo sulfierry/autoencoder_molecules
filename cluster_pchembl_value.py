@@ -91,17 +91,6 @@ for group in data['pchembl_group'].unique():
 tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y', 'z'])
 tsne_df['group'] = group_labels
 
-# Plotar gráfico scatter 3D
-fig = plt.figure(figsize=(12, 10))
-ax = fig.add_subplot(111, projection='3d')
-
-for group in tsne_df['group'].unique():
-    subset = tsne_df[tsne_df['group'] == group]
-    ax.scatter(subset['x'], subset['y'], subset['z'], label=group)
-
-ax.legend()
-ax.set_title('Distribuição dos Ligantes por Grupo de pChEMBL Value (3D)')
-ax.set_xlabel('t-SNE feature 0')
-ax.set_ylabel('t-SNE feature 1')
-ax.set_zlabel('t-SNE feature 2')
-plt.show()
+# Chamar funções de plotagem conforme necessário
+plot_2d_tsne(tsne_df)
+# plot_3d_tsne(tsne_df)  # Descomente esta linha para plotar em 3D
