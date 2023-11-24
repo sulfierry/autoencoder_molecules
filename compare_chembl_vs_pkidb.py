@@ -1,7 +1,4 @@
-# compara os fingerprints do pkidb com cada chunk do ChEMBL, acumulando os SMILES não correspondentes do pkidb.
-    
 import pandas as pd
-import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 from rdkit import DataStructs
@@ -16,24 +13,19 @@ def smiles_to_fingerprint(smiles):
             return rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2)
     except:
         return None
-    return None
 
 def process_chunk(chunk, pkidb_fingerprints, pkidb_smiles):
+    chunk_fingerprints = chunk['canonical_smiles'].apply(smiles_to_fingerprint)
     non_matching_smiles_pkidb = []
     for pkidb_fp, pkidb_smile in zip(pkidb_fingerprints, pkidb_smiles):
-        if pkidb_fp is not None:
-            for _, row in chunk.iterrows():
-                chembl_fp = smiles_to_fingerprint(row['canonical_smiles'])
-                if chembl_fp is not None:
-                    if DataStructs.FingerprintSimilarity(pkidb_fp, chembl_fp) != 1.0:
-                        non_matching_smiles_pkidb.append(pkidb_smile)
-                        break
+        if pkidb_fp is not None and not any(DataStructs.FingerprintSimilarity(pkidb_fp, chembl_fp) == 1.0 for chembl_fp in chunk_fingerprints if chembl_fp is not None):
+            non_matching_smiles_pkidb.append(pkidb_smile)
     return non_matching_smiles_pkidb
-
 
 # Carregar os SMILES do pkidb
 pkidb_smiles = pd.read_csv('./pkidb_2023-06-30.tsv', sep='\t')
-pkidb_smiles['fingerprint'] = pkidb_smiles['Canonical_Smiles'].apply(smiles_to_fingerprint)
+pkidb_smiles = pkidb_smiles.dropna(subset=['Canonical_Smiles'])
+pkidb_smiles['fingerprint'] = pkidb_smiles['Canonical_Smiles'].apply(smiles_to_fingerprint).dropna()
 pkidb_fingerprints = pkidb_smiles['fingerprint'].tolist()
 pkidb_smiles_list = pkidb_smiles['Canonical_Smiles'].tolist()
 
