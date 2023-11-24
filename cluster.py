@@ -180,7 +180,6 @@ class TSNEClusterer:
         # Salvar dados t-SNE de PKIDB
         self.pkidb_data.to_csv('./PKIDB_tSNE_results.tsv', sep='\t', index=False)
 
-  
     def run(self):
         self.load_data()
         self.preprocess_data()
@@ -188,9 +187,29 @@ class TSNEClusterer:
         self.plot_tsne()
         self.save_data()
 
+      
+def calculate_tsne_parallel(tsne_clusterer, group):
+    group_data = tsne_clusterer.data[tsne_clusterer.data['pchembl_group'] == group]
+    return tsne_clusterer.calculate_tsne_for_group(group_data)
+    
 def main():
     tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
-    tsne_clusterer.run()
+    tsne_clusterer.load_data()
+    tsne_clusterer.preprocess_data()
+
+    # Utilizar todas as CPUs disponíveis para calcular t-SNE em paralelo para cada grupo
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        futures = {executor.submit(calculate_tsne_parallel, tsne_clusterer, group): group for group in tsne_clusterer.data['pchembl_group'].unique()}
+        
+        for future in concurrent.futures.as_completed(futures):
+            result, group = future.result()
+            if result is not None:
+                tsne_clusterer.tsne_results.extend(result)
+                tsne_clusterer.group_labels.extend([group] * len(result))
+
+    # Continuar com o restante da execução
+    tsne_clusterer.plot_tsne()
+    tsne_clusterer.save_data()
 
 if __name__ == '__main__':
     main()
