@@ -58,24 +58,20 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, group_data['pchembl_group'].iloc[0]
 
-    
+
     def calculate_tsne(self):
         # Preparar dados para t-SNE e plotagem
         tsne_results = []
         group_labels = []
-    
-        # Calcular t-SNE para dados pChEMBL
-        for group in self.data['pchembl_group'].unique():
-            group_data = self.data[self.data['pchembl_group'] == group]
-            fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
-            fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
-    
-            if len(fingerprints_matrix) > 5:
-                tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
-                tsne_result = tsne.fit_transform(fingerprints_matrix)
-                tsne_results.extend(tsne_result)
-                group_labels.extend([group] * len(tsne_result))
-    
+
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = {executor.submit(self.calculate_tsne_for_group, self.data[self.data['pchembl_group'] == group]): group for group in self.data['pchembl_group'].unique()}
+            for future in concurrent.futures.as_completed(futures):
+                result, group = future.result()
+                if result is not None:
+                    tsne_results.extend(result)
+                    group_labels.extend([group] * len(result))
+
         self.tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y'])
         self.tsne_df['group'] = group_labels
     
