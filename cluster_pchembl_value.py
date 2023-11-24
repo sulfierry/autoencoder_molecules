@@ -32,3 +32,15 @@ def pchembl_group(value):
 
 # Aplicar agrupamento
 data['pchembl_group'] = data['pchembl_value'].apply(pchembl_group)
+
+
+# Filtrar e salvar kinases sem 'pchembl_value'
+kinases_sem_pchembl = data[data['pchembl_group'] == 'sem_pchembl']
+kinases_sem_pchembl.to_csv('./kinases_sem_pchembl_value.tsv', sep='\t', index=False)
+
+# Remover kinases sem 'pchembl_value' para análise t-SNE
+data = data[data['pchembl_group'] != 'sem_pchembl']
+
+# Preparar dados para t-SNE e plotagem
+tsne_results = []
+group_labels = []
