@@ -61,22 +61,33 @@ class TSNEClusterer:
             tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, group_data['pchembl_group'].iloc[0]
-    
-    
+
+
+    @staticmethod
+    def process_group_data(smiles_list):
+        # Suponha que smiles_to_fingerprint é uma função importada ou definida em outro lugar no seu código
+        fingerprints = [smiles_to_fingerprint(smiles) for smiles in smiles_list if smiles]
+        fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
+        if len(fingerprints_matrix) > 5:
+            tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
+            tsne_result = tsne.fit_transform(fingerprints_matrix)
+            return tsne_result
+        return None
+        
     def calculate_tsne(self):
         # Preparar dados para t-SNE e plotagem
         tsne_results = []
         group_labels = []
-    
-        # Defina a função que será executada em paralelo
-        def process_group_data(group_data):
-            fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
-            fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
-            if len(fingerprints_matrix) > 5:
-                tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
-                tsne_result = tsne.fit_transform(fingerprints_matrix)
-                return tsne_result, group_data['pchembl_group'].iloc[0]
-            return None, None
+
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = [executor.submit(TSNEClusterer.process_group_data, group_data['smiles'].tolist())
+                       for group, group_data in self.data.groupby('pchembl_group')]
+
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    tsne_results.extend(result)
+                    group_labels.extend([group] * len(result))
     
         # Usar ProcessPoolExecutor para processar dados em paralelo
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
