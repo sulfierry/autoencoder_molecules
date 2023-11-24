@@ -21,9 +21,15 @@ def smiles_to_fingerprint(smiles):
 def process_chunk(chunk, pkidb_fingerprints, pkidb_smiles):
     non_matching_smiles_pkidb = []
     for pkidb_fp, pkidb_smile in zip(pkidb_fingerprints, pkidb_smiles):
-        if not any(DataStructs.FingerprintSimilarity(pkidb_fp, smiles_to_fingerprint(row['canonical_smiles'])) == 1.0 for _, row in chunk.iterrows() if pkidb_fp is not None):
-            non_matching_smiles_pkidb.append(pkidb_smile)
+        if pkidb_fp is not None:
+            for _, row in chunk.iterrows():
+                chembl_fp = smiles_to_fingerprint(row['canonical_smiles'])
+                if chembl_fp is not None:
+                    if DataStructs.FingerprintSimilarity(pkidb_fp, chembl_fp) != 1.0:
+                        non_matching_smiles_pkidb.append(pkidb_smile)
+                        break
     return non_matching_smiles_pkidb
+
 
 # Carregar os SMILES do pkidb
 pkidb_smiles = pd.read_csv('./pkidb_2023-06-30.tsv', sep='\t')
