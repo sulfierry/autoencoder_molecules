@@ -86,20 +86,48 @@ class TSNEClusterer:
         self.pkidb_data['x'] = tsne_results_pkidb[:, 0]
         self.pkidb_data['y'] = tsne_results_pkidb[:, 1]
     
-    def plot_tsne(self):
-        plt.figure(figsize=(12, 8))
-        for group in self.tsne_df['group'].unique():
+def plot_tsne(self):
+    plt.figure(figsize=(12, 8))
+
+    # Ordem desejada para a plotagem
+    plot_order = [
+        'sem_pchembl', 
+        'grupo1_(1 - 8)', 
+        'grupo2_(8 - 9)', 
+        'grupo3_(9 - 10)', 
+        'grupo4_(10 - 11)', 
+        'grupo5_(11 - 12)',
+        'PKIDB Ligantes'  # Adicione 'PKIDB Ligantes' como o último a ser plotado
+    ]
+
+    # Cores específicas para cada grupo
+    colors = {
+        'sem_pchembl': 'grey',
+        'grupo1_(1 - 8)': 'blue',
+        'grupo2_(8 - 9)': 'green',
+        'grupo3_(9 - 10)': 'yellow',
+        'grupo4_(10 - 11)': 'orange',
+        'grupo5_(11 - 12)': 'purple',
+        'PKIDB Ligantes': 'red'  # Cor inconfundível para PKIDB
+    }
+
+    # Plotagem de acordo com a ordem definida
+    for group in plot_order[:-1]:  # Exclua 'PKIDB Ligantes' desta iteração
+        if group in self.tsne_df['group'].unique():
             subset = self.tsne_df[self.tsne_df['group'] == group]
-            plt.scatter(subset['x'], subset['y'], label=group)
-        
-        # Plot PKIDB data
-        plt.scatter(self.pkidb_data['x'], self.pkidb_data['y'], c='red', label='PKIDB Ligantes', alpha=0.6)
-    
-        plt.legend()
-        plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
-        plt.xlabel('t-SNE feature 0')
-        plt.ylabel('t-SNE feature 1')
-        plt.show()
+            plt.scatter(subset['x'], subset['y'], color=colors[group], label=group, alpha=0.5)
+
+    # Garantir que PKIDB seja plotado por último e seja claramente visível
+    if 'PKIDB Ligantes' in plot_order:
+        pkidb_subset = self.pkidb_data
+        plt.scatter(pkidb_subset['x'], pkidb_subset['y'], color=colors['PKIDB Ligantes'], label='PKIDB Ligantes', alpha=0.6)
+
+    plt.legend()
+    plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
+    plt.xlabel('t-SNE feature 0')
+    plt.ylabel('t-SNE feature 1')
+    plt.show()
+    plt.savefig('./tsne_chembl_pkidb_clusters.png')
     
     def save_data(self):
         # Salvar grupos sem pchembl_value
