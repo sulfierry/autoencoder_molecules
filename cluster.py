@@ -195,26 +195,26 @@ def calculate_tsne_parallel(tsne_clusterer, group):
 
 
 def main():
-tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
-tsne_clusterer.load_data()
-tsne_clusterer.preprocess_data()
-
-# Utilizar todas as CPUs disponíveis para calcular t-SNE em paralelo para cada grupo
-with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-    futures = {executor.submit(calculate_tsne_parallel, tsne_clusterer, group): group for group in tsne_clusterer.data['pchembl_group'].unique()}
+    tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
+    tsne_clusterer.load_data()
+    tsne_clusterer.preprocess_data()
     
-    for future in concurrent.futures.as_completed(futures):
-        result, group = future.result()
-        if result is not None:
-            tsne_clusterer.tsne_results.extend(result)
-            tsne_clusterer.group_labels.extend([group] * len(result))
-
-tsne_clusterer.tsne_df = pd.DataFrame(tsne_clusterer.tsne_results, columns=['x', 'y'])
-tsne_clusterer.tsne_df['group'] = tsne_clusterer.group_labels
-
-# Continuar com o restante da execução
-tsne_clusterer.plot_tsne()
-tsne_clusterer.save_data()
+    # Utilizar todas as CPUs disponíveis para calcular t-SNE em paralelo para cada grupo
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        futures = {executor.submit(calculate_tsne_parallel, tsne_clusterer, group): group for group in tsne_clusterer.data['pchembl_group'].unique()}
+        
+        for future in concurrent.futures.as_completed(futures):
+            result, group = future.result()
+            if result is not None:
+                tsne_clusterer.tsne_results.extend(result)
+                tsne_clusterer.group_labels.extend([group] * len(result))
+    
+    tsne_clusterer.tsne_df = pd.DataFrame(tsne_clusterer.tsne_results, columns=['x', 'y'])
+    tsne_clusterer.tsne_df['group'] = tsne_clusterer.group_labels
+    
+    # Continuar com o restante da execução
+    tsne_clusterer.plot_tsne()
+    tsne_clusterer.save_data()
 
 if __name__ == '__main__':
     main()
