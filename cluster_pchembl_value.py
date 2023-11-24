@@ -64,7 +64,7 @@ data['pchembl_group'] = data['pchembl_value'].apply(pchembl_group)
 
 # Filtrar e salvar kinases sem 'pchembl_value'
 kinases_sem_pchembl = data[data['pchembl_group'] == 'sem_pchembl']
-kinases_sem_pchembl.to_csv('/mnt/data/kinases_sem_pchembl_value.tsv', sep='\t', index=False)
+kinases_sem_pchembl.to_csv('./kinases_sem_pchembl_value.tsv', sep='\t', index=False)
 
 # Remover kinases sem 'pchembl_value' para análise t-SNE
 data = data[data['pchembl_group'] != 'sem_pchembl']
@@ -75,7 +75,7 @@ group_labels = []
 
 for group in data['pchembl_group'].unique():
     group_data = data[data['pchembl_group'] == group]
-    group_data.to_csv(f'/mnt/data/kinases_{group}.tsv', sep='\t', index=False)  # Salvar dados do grupo
+    group_data.to_csv(f'./kinases_{group}.tsv', sep='\t', index=False)  # Salvar dados do grupo
 
     fingerprints = [smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
     fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
