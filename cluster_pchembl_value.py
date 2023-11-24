@@ -31,25 +31,26 @@ def pchembl_group(value):
     else:
         return '>12'
 
-# Função de plotagem 2D
-def plot_2d_tsne(tsne_df):
+# Funções de plotagem atualizadas com a ordem explícita dos grupos
+def plot_2d_tsne(tsne_df, group_order):
     plt.figure(figsize=(12, 8))
-    for group in tsne_df['group'].unique():
-        subset = tsne_df[tsne_df['group'] == group]
-        plt.scatter(subset['x'], subset['y'], label=group)
+    for group in group_order:
+        if group in tsne_df['group'].unique():
+            subset = tsne_df[tsne_df['group'] == group]
+            plt.scatter(subset['x'], subset['y'], label=group)
     plt.legend()
     plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value (2D)')
     plt.xlabel('t-SNE feature 0')
     plt.ylabel('t-SNE feature 1')
     plt.show()
 
-# Função de plotagem 3D
-def plot_3d_tsne(tsne_df):
+def plot_3d_tsne(tsne_df, group_order):
     fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111, projection='3d')
-    for group in tsne_df['group'].unique():
-        subset = tsne_df[tsne_df['group'] == group]
-        ax.scatter(subset['x'], subset['y'], subset['z'], label=group)
+    for group in group_order:
+        if group in tsne_df['group'].unique():
+            subset = tsne_df[tsne_df['group'] == group]
+            ax.scatter(subset['x'], subset['y'], subset['z'], label=group)
     ax.legend()
     ax.set_title('Distribuição dos Ligantes por Grupo de pChEMBL Value (3D)')
     ax.set_xlabel('t-SNE feature 0')
