@@ -20,15 +20,15 @@ def pchembl_group(value):
     if pd.isna(value):
         return 'sem_pchembl'
     elif 1 < value < 8:
-        return 'grupo1 (1 - 8)'
+        return 'grupo1_(1 - 8)'
     elif 8 <= value < 9:
-        return 'grupo2 (8 - 9)'
+        return 'grupo2_(8 - 9)'
     elif 9 <= value < 10:
-        return 'grupo3 (9 - 10)'
+        return 'grupo3_(9 - 10)'
     elif 10 <= value < 11:
-        return 'grupo4 (10 - 11)'
+        return 'grupo4_(10 - 11)'
     elif 11 <= value < 12:
-        return 'grupo5 (11 - 12)'
+        return 'grupo5_(11 - 12)'
     else:
         return '>12'
 
@@ -93,8 +93,46 @@ tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y', 'z'])
 tsne_df['group'] = group_labels
 
 # Ordem desejada para os grupos
-group_order = ['grupo1 (1 - 7)', 'grupo2 (7 - 8)', 'grupo3 (8 - 9)', 'grupo4 (9 - 10)', 'grupo5 (10 - 11)', '>12']
+group_order = ['grupo1_(1 - 7)', 'grupo2_(7 - 8)', 'grupo3_(8 - 9)', 'grupo4_(9 - 10)', 'grupo5_(10 - 11)', '>12']
 
 # Chamar funções de plotagem conforme necessário
 plot_2d_tsne(tsne_df, group_order)
 # plot_3d_tsne(tsne_df, group_order)  # Descomente esta linha para plotar em 3D
+
+# ... (Seu código anterior para processar e plotar os dados pChEMBL)
+
+# Inserir a nova parte do código aqui
+# Carregar os dados do PKIDB
+pkidb_file_path = './pkidb_2023-06-30.tsv'  # Atualize para o caminho correto do arquivo PKIDB
+pkidb_data = pd.read_csv(pkidb_file_path, sep='\t', usecols=['Canonical_Smiles'])
+
+# Calcular os fingerprints dos ligantes do PKIDB
+pkidb_data['fingerprint'] = pkidb_data['Canonical_Smiles'].apply(smiles_to_fingerprint)
+
+# Filtrar as linhas onde o fingerprint foi calculado com sucesso
+pkidb_data = pkidb_data.dropna(subset=['fingerprint'])
+
+# Converter os fingerprints para uma matriz numpy para t-SNE
+fingerprints_matrix_pkidb = np.array([list(fp) for fp in pkidb_data['fingerprint']])
+
+# Aplicar t-SNE aos fingerprints do PKIDB
+tsne_pkidb = TSNE(n_components=2, random_state=0, perplexity=30)  # Ajuste o perplexity conforme necessário
+tsne_results_pkidb = tsne_pkidb.fit_transform(fingerprints_matrix_pkidb)
+
+# Adicionar os resultados do t-SNE do PKIDB ao DataFrame
+pkidb_data['x'] = tsne_results_pkidb[:, 0]
+pkidb_data['y'] = tsne_results_pkidb[:, 1]
+
+# Plotar os dados pChEMBL com o gráfico t-SNE existente
+plt.figure(figsize=(12, 8))
+
+# (Seu código de plotagem existente para os dados pChEMBL)
+
+# Plotar os resultados do t-SNE do PKIDB sobre o gráfico existente
+plt.scatter(pkidb_data['x'], pkidb_data['y'], c='red', label='PKIDB Ligantes')  # Escolha uma cor que destaque
+
+plt.legend()
+plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
+plt.xlabel('t-SNE feature 0')
+plt.ylabel('t-SNE feature 1')
+plt.show()
