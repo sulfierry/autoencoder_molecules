@@ -25,7 +25,7 @@ def pchembl_group(value):
         return 'grupo2 (6 - 8)'
     elif 8 <= value < 10:
         return 'grupo3 (8 - 10)'
-    elif 10 <= value <= 12:
+    elif 10 <= value < 12:
         return 'grupo4 (10 - 12)'
     elif value > 12:
         return '> 12'
