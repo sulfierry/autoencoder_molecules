@@ -14,3 +14,21 @@ data = pd.read_csv(file_path, sep='\t')
 def smiles_to_fingerprint(smiles):
     mol = Chem.MolFromSmiles(smiles)
     return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2) if mol else None
+
+# Função para agrupar por 'pchembl_value'
+def pchembl_group(value):
+    if pd.isna(value):
+        return 'sem_pchembl'
+    elif 1 < value < 4:
+        return 'grupo1'
+    elif 4 <= value < 6:
+        return 'grupo2'
+    elif 6 <= value < 8:
+        return 'grupo3'
+    elif 8 <= value <= 10:
+        return 'grupo4'
+    else:
+        return 'outros'
+
+# Aplicar agrupamento
+data['pchembl_group'] = data['pchembl_value'].apply(pchembl_group)
