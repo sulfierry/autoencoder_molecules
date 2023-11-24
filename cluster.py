@@ -61,74 +61,82 @@ class TSNEClusterer:
             tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, group_data['pchembl_group'].iloc[0]
-
-
+    
+    
     def calculate_tsne(self):
         # Preparar dados para t-SNE e plotagem
         tsne_results = []
         group_labels = []
-
+    
+        # Defina a função que será executada em paralelo
+        def process_group_data(group_data):
+            fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
+            fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
+            if len(fingerprints_matrix) > 5:
+                tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
+                tsne_result = tsne.fit_transform(fingerprints_matrix)
+                return tsne_result, group_data['pchembl_group'].iloc[0]
+            return None, None
+    
+        # Usar ProcessPoolExecutor para processar dados em paralelo
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            futures = {executor.submit(self.calculate_tsne_for_group, self.data[self.data['pchembl_group'] == group]): group for group in self.data['pchembl_group'].unique()}
+            futures = [executor.submit(process_group_data, self.data[self.data['pchembl_group'] == group])
+                       for group in self.data['pchembl_group'].unique()]
+    
             for future in concurrent.futures.as_completed(futures):
                 result, group = future.result()
                 if result is not None:
                     tsne_results.extend(result)
                     group_labels.extend([group] * len(result))
-
+    
+        # Adicione os resultados à instância da classe
         self.tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y'])
         self.tsne_df['group'] = group_labels
+
+        
+    def plot_tsne(self):
+        plt.figure(figsize=(12, 8))
     
-        # Calcular t-SNE para dados PKIDB
-        fingerprints_pkidb = np.array([list(fp) for fp in self.pkidb_data['fingerprint']])
-        tsne_pkidb = TSNE(n_components=2, random_state=0, perplexity=30)
-        tsne_results_pkidb = tsne_pkidb.fit_transform(fingerprints_pkidb)
-        self.pkidb_data['x'] = tsne_results_pkidb[:, 0]
-        self.pkidb_data['y'] = tsne_results_pkidb[:, 1]
+        # Ordem desejada para a plotagem
+        plot_order = [
+            'sem_pchembl', 
+            'grupo1_(1 - 8)', 
+            'grupo2_(8 - 9)', 
+            'grupo3_(9 - 10)', 
+            'grupo4_(10 - 11)', 
+            'grupo5_(11 - 12)',
+            'PKIDB Ligantes'  # Adicione 'PKIDB Ligantes' como o último a ser plotado
+        ]
     
-def plot_tsne(self):
-    plt.figure(figsize=(12, 8))
-
-    # Ordem desejada para a plotagem
-    plot_order = [
-        'sem_pchembl', 
-        'grupo1_(1 - 8)', 
-        'grupo2_(8 - 9)', 
-        'grupo3_(9 - 10)', 
-        'grupo4_(10 - 11)', 
-        'grupo5_(11 - 12)',
-        'PKIDB Ligantes'  # Adicione 'PKIDB Ligantes' como o último a ser plotado
-    ]
-
-    # Cores específicas para cada grupo
-    colors = {
-        'sem_pchembl': 'grey',
-        'grupo1_(1 - 8)': 'blue',
-        'grupo2_(8 - 9)': 'green',
-        'grupo3_(9 - 10)': 'yellow',
-        'grupo4_(10 - 11)': 'orange',
-        'grupo5_(11 - 12)': 'purple',
-        'PKIDB Ligantes': 'red'  # Cor inconfundível para PKIDB
-    }
-
-    # Plotagem de acordo com a ordem definida
-    for group in plot_order[:-1]:  # Exclua 'PKIDB Ligantes' desta iteração
-        if group in self.tsne_df['group'].unique():
-            subset = self.tsne_df[self.tsne_df['group'] == group]
-            plt.scatter(subset['x'], subset['y'], color=colors[group], label=group, alpha=0.5)
-
-    # Garantir que PKIDB seja plotado por último e seja claramente visível
-    if 'PKIDB Ligantes' in plot_order:
-        pkidb_subset = self.pkidb_data
-        plt.scatter(pkidb_subset['x'], pkidb_subset['y'], color=colors['PKIDB Ligantes'], label='PKIDB Ligantes', alpha=0.6)
-
-    plt.legend()
-    plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
-    plt.xlabel('t-SNE feature 0')
-    plt.ylabel('t-SNE feature 1')
-    plt.show()
-    plt.savefig('./tsne_chembl_pkidb_clusters.png')
+        # Cores específicas para cada grupo
+        colors = {
+            'sem_pchembl': 'grey',
+            'grupo1_(1 - 8)': 'blue',
+            'grupo2_(8 - 9)': 'green',
+            'grupo3_(9 - 10)': 'yellow',
+            'grupo4_(10 - 11)': 'orange',
+            'grupo5_(11 - 12)': 'purple',
+            'PKIDB Ligantes': 'red'  # Cor inconfundível para PKIDB
+        }
     
+        # Plotagem de acordo com a ordem definida
+        for group in plot_order[:-1]:  # Exclua 'PKIDB Ligantes' desta iteração
+            if group in self.tsne_df['group'].unique():
+                subset = self.tsne_df[self.tsne_df['group'] == group]
+                plt.scatter(subset['x'], subset['y'], color=colors[group], label=group, alpha=0.5)
+    
+        # Garantir que PKIDB seja plotado por último e seja claramente visível
+        if 'PKIDB Ligantes' in plot_order:
+            pkidb_subset = self.pkidb_data
+            plt.scatter(pkidb_subset['x'], pkidb_subset['y'], color=colors['PKIDB Ligantes'], label='PKIDB Ligantes', alpha=0.6)
+    
+        plt.legend()
+        plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
+        plt.xlabel('t-SNE feature 0')
+        plt.ylabel('t-SNE feature 1')
+        plt.show()
+        plt.savefig('./tsne_chembl_pkidb_clusters.png')
+        
     def save_data(self):
         # Salvar grupos sem pchembl_value
         self.data[self.data['pchembl_group'] == 'sem_pchembl'].to_csv('./kinases_sem_pchembl_value.tsv', sep='\t', index=False)
