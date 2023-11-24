@@ -44,3 +44,36 @@ data = data[data['pchembl_group'] != 'sem_pchembl']
 # Preparar dados para t-SNE e plotagem
 tsne_results = []
 group_labels = []
+
+
+
+for group in data['pchembl_group'].unique():
+    group_data = data[data['pchembl_group'] == group]
+    fingerprints = [smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
+    fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
+
+    # Verificar se há amostras suficientes para t-SNE
+    if len(fingerprints_matrix) > 5:  # Ajuste este valor conforme necessário
+        # Aplicar t-SNE
+        perplexity = min(30, len(fingerprints_matrix) - 1)
+        tsne = TSNE(n_components=2, random_state=0, perplexity=perplexity)
+        tsne_result = tsne.fit_transform(fingerprints_matrix)
+        tsne_results.extend(tsne_result)
+        group_labels.extend([group] * len(tsne_result))
+
+# Converter resultados em DataFrame
+tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y'])
+tsne_df['group'] = group_labels
+
+# Plotar gráfico scatter
+plt.figure(figsize=(12, 8))
+for group in tsne_df['group'].unique():
+    subset = tsne_df[tsne_df['group'] == group]
+    plt.scatter(subset['x'], subset['y'], label=group)
+
+plt.legend()
+plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value')
+plt.xlabel('t-SNE feature 0')
+plt.ylabel('t-SNE feature 1')
+plt.show()
+
