@@ -1,12 +1,13 @@
-import pandas as pd
-import numpy as np
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
 import os
+import numpy as np
+import pandas as pd
+from rdkit import Chem
 import concurrent.futures
+from rdkit.Chem import AllChem
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 from concurrent.futures import ProcessPoolExecutor
+
 
 class TSNEClusterer:
     def __init__(self, data_path, pkidb_path):
