@@ -119,6 +119,9 @@ class TSNEClusterer:
         self.plot_tsne()
         self.save_data()
 
-# Utilize a classe
-tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
-tsne_clusterer.run()
+def main():
+    tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
+    tsne_clusterer.run()
+
+if __name__ == '__main__':
+    main()
