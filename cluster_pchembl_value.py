@@ -18,16 +18,16 @@ def smiles_to_fingerprint(smiles):
 def pchembl_group(value):
     if pd.isna(value):
         return 'sem_pchembl'
-    elif 1 < value < 7:
-        return 'grupo1 (1 - 7)'
-    elif 7 <= value < 8:
-        return 'grupo2 (7 - 8)'
+    elif 1 < value < 8:
+        return 'grupo1 (1 - 8)'
     elif 8 <= value < 9:
-        return 'grupo3 (8 - 9)'
+        return 'grupo2 (8 - 9)'
     elif 9 <= value < 10:
-        return 'grupo4 (9 - 10)'
+        return 'grupo3 (9 - 10)'
     elif 10 <= value < 11:
-        return 'grupo5 (10 - 11)'
+        return 'grupo4 (10 - 11)'
+    elif 11 <= value < 12:
+        return 'grupo5 (11 - 12)'
     else:
         return '>12'
 
