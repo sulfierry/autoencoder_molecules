@@ -62,11 +62,19 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, group_data['pchembl_group'].iloc[0]
 
+    @staticmethod
+    def smiles_to_fingerprint(smiles):
+        try:
+            mol = Chem.MolFromSmiles(smiles)
+            if mol:
+                return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
+        except Exception as e:
+            print(f"Erro ao converter SMILES: {smiles} - {e}")
+        return None
 
     @staticmethod
     def process_group_data(smiles_list):
-        # Suponha que smiles_to_fingerprint é uma função importada ou definida em outro lugar no seu código
-        fingerprints = [smiles_to_fingerprint(smiles) for smiles in smiles_list if smiles]
+        fingerprints = [TSNEClusterer.smiles_to_fingerprint(smiles) for smiles in smiles_list if smiles]
         fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
         if len(fingerprints_matrix) > 5:
             tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
