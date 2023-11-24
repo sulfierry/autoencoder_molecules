@@ -4,7 +4,8 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
-import os 
+import os
+import concurrent.futures
 from concurrent.futures import ProcessPoolExecutor
 
 class TSNEClusterer:
