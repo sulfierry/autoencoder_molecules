@@ -32,6 +32,32 @@ def pchembl_group(value):
     else:
         return 'outros'
 
+# Função de plotagem 2D
+def plot_2d_tsne(tsne_df):
+    plt.figure(figsize=(12, 8))
+    for group in tsne_df['group'].unique():
+        subset = tsne_df[tsne_df['group'] == group]
+        plt.scatter(subset['x'], subset['y'], label=group)
+    plt.legend()
+    plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value (2D)')
+    plt.xlabel('t-SNE feature 0')
+    plt.ylabel('t-SNE feature 1')
+    plt.show()
+
+# Função de plotagem 3D
+def plot_3d_tsne(tsne_df):
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    for group in tsne_df['group'].unique():
+        subset = tsne_df[tsne_df['group'] == group]
+        ax.scatter(subset['x'], subset['y'], subset['z'], label=group)
+    ax.legend()
+    ax.set_title('Distribuição dos Ligantes por Grupo de pChEMBL Value (3D)')
+    ax.set_xlabel('t-SNE feature 0')
+    ax.set_ylabel('t-SNE feature 1')
+    ax.set_zlabel('t-SNE feature 2')
+    plt.show()
+
 
 # Aplicar agrupamento
 data['pchembl_group'] = data['pchembl_value'].apply(pchembl_group)
