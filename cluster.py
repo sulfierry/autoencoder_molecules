@@ -86,38 +86,38 @@ class TSNEClusterer:
         return None
 
     def calculate_tsne(self):
-    # Preparar dados para t-SNE e plotagem
-    tsne_results = []
-    group_labels = []
-
-    # Processamento paralelo para calcular t-SNE para cada grupo de pChEMBL
-    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-        futures = []
-        for group in self.data['pchembl_group'].unique():
-            group_data = self.data[self.data['pchembl_group'] == group]
-            futures.append(executor.submit(self.calculate_tsne_for_group, group_data))
-
-        for future in concurrent.futures.as_completed(futures):
-            result, group = future.result()
-            if result is not None:
-                tsne_results.extend(result)
-                group_labels.extend([group] * len(result))
-
-    # Adicionar os resultados t-SNE ao DataFrame
-    self.tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y'])
-    self.tsne_df['group'] = group_labels
-
-    # Calcular t-SNE para dados PKIDB
-    fingerprints_pkidb = np.array([list(fp) for fp in self.pkidb_data['fingerprint'] if fp is not None])
-    if len(fingerprints_pkidb) > 0:
-        tsne_pkidb = TSNE(n_components=2, random_state=0, perplexity=30)
-        tsne_results_pkidb = tsne_pkidb.fit_transform(fingerprints_pkidb)
-
-        # Adicionar os resultados t-SNE do PKIDB ao DataFrame
-        self.pkidb_data['x'] = tsne_results_pkidb[:, 0]
-        self.pkidb_data['y'] = tsne_results_pkidb[:, 1]
-    else:
-        print("Nenhum fingerprint válido encontrado para PKIDB.")
+        # Preparar dados para t-SNE e plotagem
+        tsne_results = []
+        group_labels = []
+    
+        # Processamento paralelo para calcular t-SNE para cada grupo de pChEMBL
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = []
+            for group in self.data['pchembl_group'].unique():
+                group_data = self.data[self.data['pchembl_group'] == group]
+                futures.append(executor.submit(self.calculate_tsne_for_group, group_data))
+    
+            for future in concurrent.futures.as_completed(futures):
+                result, group = future.result()
+                if result is not None:
+                    tsne_results.extend(result)
+                    group_labels.extend([group] * len(result))
+    
+        # Adicionar os resultados t-SNE ao DataFrame
+        self.tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y'])
+        self.tsne_df['group'] = group_labels
+    
+        # Calcular t-SNE para dados PKIDB
+        fingerprints_pkidb = np.array([list(fp) for fp in self.pkidb_data['fingerprint'] if fp is not None])
+        if len(fingerprints_pkidb) > 0:
+            tsne_pkidb = TSNE(n_components=2, random_state=0, perplexity=30)
+            tsne_results_pkidb = tsne_pkidb.fit_transform(fingerprints_pkidb)
+    
+            # Adicionar os resultados t-SNE do PKIDB ao DataFrame
+            self.pkidb_data['x'] = tsne_results_pkidb[:, 0]
+            self.pkidb_data['y'] = tsne_results_pkidb[:, 1]
+        else:
+            print("Nenhum fingerprint válido encontrado para PKIDB.")
 
 
     def calculate_tsne_for_group(self, group_data):
