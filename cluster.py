@@ -128,22 +128,10 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, group_data['pchembl_group'].iloc[0]
 
-        
     def plot_tsne(self):
         plt.figure(figsize=(12, 8))
-    
-        # Ordem desejada para a plotagem
-        plot_order = [
-            'sem_pchembl', 
-            'grupo1_(1 - 8)', 
-            'grupo2_(8 - 9)', 
-            'grupo3_(9 - 10)', 
-            'grupo4_(10 - 11)', 
-            'grupo5_(11 - 12)',
-            'PKIDB Ligantes'  # Adicione 'PKIDB Ligantes' como o último a ser plotado
-        ]
-    
-        # Cores específicas para cada grupo
+        
+        # Cores e ordem de plotagem
         colors = {
             'sem_pchembl': 'grey',
             'grupo1_(1 - 8)': 'blue',
@@ -151,19 +139,25 @@ class TSNEClusterer:
             'grupo3_(9 - 10)': 'yellow',
             'grupo4_(10 - 11)': 'orange',
             'grupo5_(11 - 12)': 'purple',
-            'PKIDB Ligantes': 'red'  # Cor inconfundível para PKIDB
+            'PKIDB Ligantes': 'red'
         }
+        plot_order = [
+            'sem_pchembl', 'grupo1_(1 - 8)', 'grupo2_(8 - 9)', 'grupo3_(9 - 10)',
+            'grupo4_(10 - 11)', 'grupo5_(11 - 12)', 'PKIDB Ligantes'
+        ]
     
         # Plotagem de acordo com a ordem definida
         for group in plot_order[:-1]:  # Exclua 'PKIDB Ligantes' desta iteração
             if group in self.tsne_df['group'].unique():
                 subset = self.tsne_df[self.tsne_df['group'] == group]
                 plt.scatter(subset['x'], subset['y'], color=colors[group], label=group, alpha=0.5)
-    
-        # Garantir que PKIDB seja plotado por último e seja claramente visível
-        if 'PKIDB Ligantes' in plot_order:
+        
+        # Verificar se as colunas 'x' e 'y' existem no DataFrame pkidb_data
+        if 'x' in self.pkidb_data and 'y' in self.pkidb_data:
             pkidb_subset = self.pkidb_data
             plt.scatter(pkidb_subset['x'], pkidb_subset['y'], color=colors['PKIDB Ligantes'], label='PKIDB Ligantes', alpha=0.6)
+        else:
+            print("Colunas 'x' e 'y' não encontradas no DataFrame pkidb_data.")
     
         plt.legend()
         plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
@@ -171,7 +165,7 @@ class TSNEClusterer:
         plt.ylabel('t-SNE feature 1')
         plt.show()
         plt.savefig('./tsne_chembl_pkidb_clusters.png')
-        
+
     def save_data(self):
         # Salvar grupos sem pchembl_value
         self.data[self.data['pchembl_group'] == 'sem_pchembl'].to_csv('./kinases_sem_pchembl_value.tsv', sep='\t', index=False)
