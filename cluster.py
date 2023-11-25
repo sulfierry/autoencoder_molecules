@@ -22,7 +22,7 @@ class TSNEClusterer:
         self.data = pd.read_csv(self.data_path, sep='\t')
         self.pkidb_data = pd.read_csv(self.pkidb_path, sep='\t', usecols=['Canonical_Smiles'])
 
-    
+    @staticmethod
     def smiles_to_fingerprint(smiles):
         try:
             mol = Chem.MolFromSmiles(smiles)
@@ -31,6 +31,7 @@ class TSNEClusterer:
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
+
 
 
     def preprocess_data(self):
