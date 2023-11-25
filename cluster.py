@@ -114,6 +114,9 @@ class TSNEClusterer:
         # Adicionar os resultados t-SNE do PKIDB ao DataFrame
         self.pkidb_data['x'] = tsne_results_pkidb[:, 0]
         self.pkidb_data['y'] = tsne_results_pkidb[:, 1]
+        # Depois do cálculo do t-SNE para PKIDB
+        print(self.pkidb_data.head())
+
 
     def calculate_tsne_for_group(self, group_data):
         fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
