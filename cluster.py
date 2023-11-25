@@ -22,15 +22,16 @@ class TSNEClusterer:
         self.data = pd.read_csv(self.data_path, sep='\t')
         self.pkidb_data = pd.read_csv(self.pkidb_path, sep='\t', usecols=['Canonical_Smiles'])
 
-    def smiles_to_fingerprint(self, smiles):
-        # Utilize a função existente ou melhore para tratar exceções e moléculas inválidas
+    
+    def smiles_to_fingerprint(smiles):
         try:
             mol = Chem.MolFromSmiles(smiles)
-            if mol:
+            if mol and mol.GetNumAtoms() > 0 and Chem.SanitizeMol(mol, catchErrors=True) == Chem.SanitizeFlags.SANITIZE_NONE:
                 return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
+
 
     def preprocess_data(self):
         self.data['pchembl_group'] = self.data['pchembl_value'].apply(self.pchembl_group)
