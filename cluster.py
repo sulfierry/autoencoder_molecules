@@ -82,8 +82,8 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result
         return None
-            
 
+    
     def calculate_tsne(self):
         # Preparar dados para t-SNE e plotagem
         tsne_results = []
