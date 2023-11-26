@@ -110,16 +110,14 @@ class TSNEClusterer:
             pkidb_fingerprints_matrix = np.array(pkidb_fingerprints)
             tsne_results_pkidb = tsne_pkidb.fit_transform(pkidb_fingerprints_matrix)
     
-            # Adicionar os resultados t-SNE do PKIDB ao DataFrame
-            pkidb_tsne_df = pd.DataFrame(tsne_results_pkidb, columns=['x', 'y'])
-            pkidb_tsne_df['group'] = 'PKIDB Ligantes'
+            # Atualizar o DataFrame pkidb_data com os resultados t-SNE
+            self.pkidb_data['x'], self.pkidb_data['y'] = tsne_results_pkidb[:, 0], tsne_results_pkidb[:, 1]
+            self.pkidb_data['group'] = 'PKIDB Ligantes'
     
-            # Combinar os dados t-SNE do ChEMBL e PKIDB
-            self.tsne_df = pd.concat([self.tsne_df, pkidb_tsne_df], ignore_index=True)
+            # Adicionar os dados do PKIDB ao DataFrame tsne_df
+            self.tsne_df = pd.concat([self.tsne_df, self.pkidb_data[['x', 'y', 'group']]], ignore_index=True)
         else:
             print("Nenhum fingerprint válido encontrado para PKIDB.")
-
-
 
 
     def calculate_tsne_for_group(self, group_data):
