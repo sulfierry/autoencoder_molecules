@@ -84,50 +84,41 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result
         return None
-        
+            
     def calculate_tsne(self):
-        # Preparar dados para t-SNE e plotagem
-        tsne_results = []
-        group_labels = []
-        
         # Processamento paralelo para calcular t-SNE para cada grupo de pChEMBL
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = []
             for group in self.data['pchembl_group'].unique():
                 group_data = self.data[self.data['pchembl_group'] == group]
                 futures.append(executor.submit(self.calculate_tsne_for_group, group_data))
-        
+    
             for future in concurrent.futures.as_completed(futures):
                 result, group = future.result()
                 if result is not None:
-                    tsne_results.extend(result)
-                    group_labels.extend([group] * len(result))
-        
+                    self.tsne_results.extend(result)
+                    self.group_labels.extend([group] * len(result))
+    
         # Adicionar os resultados t-SNE ao DataFrame
-        self.tsne_df = pd.DataFrame(tsne_results, columns=['x', 'y'])
-        self.tsne_df['group'] = group_labels
-        
+        self.tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
+        self.tsne_df['group'] = self.group_labels
+    
         # Calcular t-SNE para dados PKIDB
-        fingerprints_pkidb = np.array([list(fp) for fp in self.pkidb_data['fingerprint'] if fp is not None])
-        
-        # Verificar a quantidade de fingerprints válidos para PKIDB
-        print(f"Número de fingerprints válidos para PKIDB: {len(fingerprints_pkidb)}")
-        
-        if len(fingerprints_pkidb) > 0:
+        pkidb_fingerprints = [fp for fp in self.pkidb_data['fingerprint'] if fp is not None]
+        if len(pkidb_fingerprints) > 0:
             tsne_pkidb = TSNE(n_components=2, random_state=0, perplexity=30)
-            tsne_results_pkidb = tsne_pkidb.fit_transform(fingerprints_pkidb)
-        
+            pkidb_fingerprints_matrix = np.array(pkidb_fingerprints)
+            tsne_results_pkidb = tsne_pkidb.fit_transform(pkidb_fingerprints_matrix)
+    
             # Adicionar os resultados t-SNE do PKIDB ao DataFrame
-            self.pkidb_data['x'] = tsne_results_pkidb[:, 0]
-            self.pkidb_data['y'] = tsne_results_pkidb[:, 1]
-            
-            # Verificar se as colunas 'x' e 'y' foram adicionadas corretamente
-            if 'x' in self.pkidb_data.columns and 'y' in self.pkidb_data.columns:
-                print("Colunas 'x' e 'y' adicionadas com sucesso ao DataFrame pkidb_data.")
-            else:
-                print("Falha ao adicionar colunas 'x' e 'y' ao DataFrame pkidb_data.")
+            pkidb_tsne_df = pd.DataFrame(tsne_results_pkidb, columns=['x', 'y'])
+            pkidb_tsne_df['group'] = 'PKIDB Ligantes'
+    
+            # Combinar os dados t-SNE do ChEMBL e PKIDB
+            self.tsne_df = pd.concat([self.tsne_df, pkidb_tsne_df], ignore_index=True)
         else:
             print("Nenhum fingerprint válido encontrado para PKIDB.")
+
 
 
 
