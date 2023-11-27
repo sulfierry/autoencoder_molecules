@@ -61,7 +61,7 @@ class TSNEClusterer:
         fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
         fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
         if len(fingerprints_matrix) > 5:
-            tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
+            tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(fingerprints_matrix) - 1))
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, group_data['pchembl_group'].iloc[0]
 
@@ -192,7 +192,7 @@ def calculate_tsne_parallel(tsne_clusterer, group):
 
 
 def main():
-    tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
+    tsne_clusterer = TSNEClusterer('../kinase_ligands_pchembl_Value.tsv', '../pkidb_2023-06-30.tsv')
     tsne_clusterer.load_data()
     tsne_clusterer.preprocess_data()
     
