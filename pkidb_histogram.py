@@ -43,3 +43,20 @@ for i, descritor in enumerate(descritores):
     axs[row, col].set_title(f'Distribution of {descritor}')
     axs[row, col].set_xlabel(descritor)
     axs[row, col].set(ylabel=None)
+
+
+# Adicionar a legenda fora dos plots
+fig.legend(loc="upper right", bbox_to_anchor=(1,1), bbox_transform=axs[0, 1].transAxes)
+
+# Definir o caminho do arquivo de saída
+output_directory = "histogramas"
+os.makedirs(output_directory, exist_ok=True)
+output_path = os.path.join(output_directory, "descritores_histogramas_ajustados_v3.png")
+
+plt.show()
+# Salvar a figura completa
+plt.savefig(output_path)
+
+# Mostrar o caminho do arquivo salvo
+print("Histograma salvo em:", output_path)
+
