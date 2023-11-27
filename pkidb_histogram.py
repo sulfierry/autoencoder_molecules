@@ -25,3 +25,21 @@ plt.tight_layout(h_pad=3, w_pad=2, rect=[0.05, 0, 1, 1])
 
 # Adicionar a legenda do eixo Y no meio do gráfico
 fig.text(0.04, 0.5, 'Frequency', va='center', rotation='vertical', fontsize=12)
+
+
+# Plotar os histogramas para cada descritor
+for i, descritor in enumerate(descritores):
+    # Calcular a posição do subplot
+    row = i // 2
+    col = i % 2
+    
+    # Plotar o histograma para o conjunto de dados 'pkidb'
+    sns.histplot(pkidb_data[descritor], bins=30, ax=axs[row, col], kde=False, color="blue", label="pkidb" if i==0 else "")
+    
+    # Plotar o histograma para o conjunto de dados 'out_pkidb'
+    sns.histplot(out_pkidb_data[descritor], bins=30, ax=axs[row, col], kde=False, color="orange", label="out_pkidb" if i==0 else "")
+    
+    # Configurar o título e os rótulos
+    axs[row, col].set_title(f'Distribution of {descritor}')
+    axs[row, col].set_xlabel(descritor)
+    axs[row, col].set(ylabel=None)
