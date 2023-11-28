@@ -3,93 +3,102 @@ import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 
-def calculate_descriptors(smiles):
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            return {
-                'MW': Descriptors.MolWt(mol),
-                'LogP': Descriptors.MolLogP(mol),
-                'HBD': Descriptors.NumHDonors(mol),
-                'HBA': Descriptors.NumHAcceptors(mol),
-                'TPSA': Descriptors.TPSA(mol),
-                'NRB': Descriptors.NumRotatableBonds(mol)
-            }
-    except Exception as e:
-        print(f"Erro ao processar SMILES: {smiles}: {e}")
-    return None
+class MolecularDescriptors:
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.descriptor_names = ['MW', 'LogP', 'HBD', 'HBA', 'TPSA', 'NRB']
+        self.descriptor_data = {name: [] for name in self.descriptor_names}
+        self.data = pd.read_csv(data_path, sep='\t')
 
-def plot_histograms(descriptor_data, descriptor_names):
-    fig, axs = plt.subplots(3, 2, figsize=(10, 15)) # 3 linhas, 2 colunas
-    axs = axs.flatten() # Transformar o array 2D de eixos em 1D para facilitar o acesso
+    def calculate_descriptors(self, smiles):
+        try:
+            mol = Chem.MolFromSmiles(smiles)
+            if mol:
+                return {
+                    'MW': Descriptors.MolWt(mol),
+                    'LogP': Descriptors.MolLogP(mol),
+                    'HBD': Descriptors.NumHDonors(mol),
+                    'HBA': Descriptors.NumHAcceptors(mol),
+                    'TPSA': Descriptors.TPSA(mol),
+                    'NRB': Descriptors.NumRotatableBonds(mol)
+                }
+        except Exception as e:
+            print(f"Erro ao processar SMILES: {smiles}: {e}")
+        return None
 
-    for i, name in enumerate(descriptor_names):
-        axs[i].hist(descriptor_data[name], bins=30, edgecolor='black')
-        axs[i].set_title(f'Histograma do Descritor: {name}')
-        axs[i].set_xlabel(name)
-        axs[i].set_ylabel('Frequência')
+    def compute_descriptors(self):
+        for smiles in self.data['canonical_smiles']:
+            descriptors = self.calculate_descriptors(smiles)
+            if descriptors:
+                for name in self.descriptor_names:
+                    self.descriptor_data[name].append(descriptors[name])
 
-    plt.tight_layout() # Ajusta o layout para que não haja sobreposição
-#    plt.savefig('./nr_descriptros_histogram.png')
-    plt.show()
+    def save_descriptors(self, output_path):
+        descriptor_df = pd.DataFrame(self.descriptor_data)
+        descriptor_df.to_csv(output_path, sep='\t', index=False)
 
-# Altere para o caminho do seu arquivo
-file_path = 'nr_kinase_drug_info_kd_ki_manually_validated.tsv'
+    def plot_histograms(self, additional_data_path=None, output_path=None):
+        fig, axs = plt.subplots(3, 2, figsize=(13, 13)) # 3 linhas, 2 colunas
+        axs = axs.flatten() # Transformar o array 2D de eixos em 1D
 
-# Lendo o arquivo
-data = pd.read_csv(file_path, sep='\t')
+        # Criar eixos invisíveis para os rótulos "Density"
+        density_axis = fig.add_subplot(111, frameon=False)  # Adicionar eixo que abrange toda a figura
+        density_axis.set_xticks([])  # Desativar ticks do eixo x
+        density_axis.set_yticks([])  # Desativar ticks do eixo y
+        density_axis.grid(False)     # Sem grade
+        density_axis.set_ylabel('Density', labelpad=40)  # Definir rótulo y
 
-# Calculando descritores
-descriptor_names = ['MW', 'LogP', 'HBD', 'HBA', 'TPSA', 'NRB']
-descriptor_data = {name: [] for name in descriptor_names}
+        for i, desc in enumerate(self.descriptor_names):
+            axs[i].hist(self.descriptor_data[desc], bins=30, alpha=0.5, label='Current Data', edgecolor='black', density=True)
+            if additional_data_path:
+                additional_data = pd.read_csv(additional_data_path, sep='\t')
+                axs[i].hist(additional_data[desc], bins=30, alpha=0.5, label='Additional Data', edgecolor='black', density=True)
+            axs[i].set_title(f'{desc}', fontsize=9)
 
-for smiles in data['canonical_smiles']:
-    descriptors = calculate_descriptors(smiles)
-    if descriptors:
-        for name in descriptor_names:
-            descriptor_data[name].append(descriptors[name])
+        # Posicionar a legenda fora do plot no canto superior direito do último gráfico da primeira linha
+        axs[1].legend(loc='upper right', bbox_to_anchor=(1.3, 1))
 
-# Convertendo os dados dos descritores para um DataFrame e salvando em um arquivo .tsv
-descriptor_df = pd.DataFrame(descriptor_data)
-descriptor_df.to_csv('descritores_moleculares.tsv', sep='\t', index=False)
+        plt.tight_layout()
+        if output_path:
+            plt.savefig(output_path)
+        plt.show()
+            #
+            #plt.show()
+       # else:
+       #     self.plot_simple_histograms()
+    
+    def plot_simple_histograms(self):
+        fig, axs = plt.subplots(3, 2, figsize=(13, 13)) # 3 linhas, 2 colunas
+        axs = axs.flatten() # Transformar o array 2D de eixos em 1D para facilitar o acesso
 
-# Plotando histogramas
-plot_histograms(descriptor_data, descriptor_names)
+        for i, name in enumerate(self.descriptor_names):
+            axs[i].hist(self.descriptor_data[name], bins=30, edgecolor='black')
+            axs[i].set_title(f'Histograma do Descritor: {name}', fontsize=9)
+            axs[i].set_xlabel(name)
+            axs[i].set_ylabel('Frequência')
+
+        plt.tight_layout()
+        plt.show()
 
 
-import pandas as pd
-import matplotlib.pyplot as plt
+def main():
+    # Caminhos dos arquivos
+    data_file_path = 'nr_kinase_drug_info_kd_ki_manually_validated.tsv'
+    additional_data_file_path = './pkidb_2023-06-30.tsv'
+    output_file_path = 'descritores_moleculares.tsv'
+    histogram_output_path = './pkidb_nr_chembl_histogram.png'
 
-# Altere para o caminho do seu arquivo pkidb
-file_path_pkidb = './pkidb_2023-06-30.tsv'
+    # Criar instância da classe
+    molecular_descriptors = MolecularDescriptors(data_file_path)
 
-# Lendo os dados do pkidb
-data_pkidb = pd.read_csv(file_path_pkidb, sep='\t')
+    # Calcular descritores
+    molecular_descriptors.compute_descriptors()
 
-# Nomes dos descritores
-descritores = ['MW', 'LogP', 'HBD', 'HBA', 'TPSA', 'NRB']
+    # Salvar descritores calculados
+    molecular_descriptors.save_descriptors(output_file_path)
 
-# Lendo os dados dos descritores calculados anteriormente
-# Altere para o caminho do seu arquivo de descritores calculados
-file_path_descritores_calculados = 'descritores_moleculares.tsv'
-data_calculados = pd.read_csv(file_path_descritores_calculados, sep='\t')
+    # Plotar histogramas normalizados e sobrepostos
+    molecular_descriptors.plot_histograms(additional_data_file_path, histogram_output_path)
 
-# Função para plotar os histogramas normalizados e sobrepostos
-def plot_histograms_normalizados_sobrepostos(data1, data2, descritores):
-    fig, axs = plt.subplots(3, 2, figsize=(10, 15)) # 3 linhas, 2 colunas
-    axs = axs.flatten() # Transformar o array 2D de eixos em 1D
-
-    for i, desc in enumerate(descritores):
-        axs[i].hist(data1[desc], bins=30, alpha=0.5, label='nr_Chembl', edgecolor='black', density=True)
-        axs[i].hist(data2[desc], bins=30, alpha=0.5, label='PKIDB', edgecolor='black', density=True)
-        axs[i].set_title(f'{desc}')
-        #axs[i].set_xlabel(desc)
-        axs[i].set_ylabel('Density')
-        axs[i].legend()
-
-    plt.tight_layout()
-    plt.savefig('./pkidb_nr_chembl_histogram.png')
-    plt.show()
-
-# Plotando os histogramas normalizados e sobrepostos
-plot_histograms_normalizados_sobrepostos(data_calculados, data_pkidb, descritores)
+if __name__ == '__main__':
+    main()
