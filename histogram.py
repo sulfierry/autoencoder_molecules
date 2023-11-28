@@ -62,3 +62,18 @@ all_distances = {metric: calculate_distance(valid_fps, metric) for metric in dis
 
 # Inicializar figura para os subplots
 fig, axs = plt.subplots(3, 2, figsize=(15, 15))  # 3 linhas, 2 colunas
+
+
+# Plotar histogramas das similaridades
+for ax, (metric, values) in zip(axs[:, 0], all_similarities.items()):
+    ax.hist(values, bins=50, color='skyblue', edgecolor='black')
+    ax.set_title(f'Histograma de Similaridade - {metric.capitalize()}')
+    #ax.set_xlabel('Similaridade')
+    ax.set_ylabel('Frequência')
+
+# Plotar histogramas das distâncias
+for ax, (metric, values) in zip(axs[:, 1], all_distances.items()):
+    ax.hist(values, bins=50, color='salmon', edgecolor='black')
+    ax.set_title(f'Histograma de Distância - {metric.capitalize()}')
+    #ax.set_xlabel('Distância')
+    ax.set_ylabel('Frequência')
