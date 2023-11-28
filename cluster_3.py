@@ -6,7 +6,9 @@ import concurrent.futures
 from rdkit.Chem import AllChem
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+from sklearn.preprocessing import MinMaxScaler
 from concurrent.futures import ProcessPoolExecutor
+
 
 
 class TSNEClusterer:
@@ -18,6 +20,11 @@ class TSNEClusterer:
         self.tsne_results = []  # Inicializa a lista aqui
         self.group_labels = []  # Inicializa a lista aq
 
+    def save_tsne_results(self, file_path):
+        tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
+        tsne_df['group'] = self.group_labels
+        tsne_df.to_csv(file_path, sep='\t', index=False)
+        
     def load_data(self):
         self.data = pd.read_csv(self.data_path, sep='\t')
         self.pkidb_data = pd.read_csv(self.pkidb_path, sep='\t', usecols=['Canonical_Smiles'])
@@ -44,15 +51,15 @@ class TSNEClusterer:
         if pd.isna(value):
             return 'sem_pchembl'
         elif 1 < value < 8:
-            return 'grupo1_(1 - 8)'
+            return 'grupo1'
         elif 8 <= value < 9:
-            return 'grupo2_(8 - 9)'
+            return 'grupo2'
         elif 9 <= value < 10:
-            return 'grupo3_(9 - 10)'
+            return 'grupo3'
         elif 10 <= value < 11:
-            return 'grupo4_(10 - 11)'
+            return 'grupo4'
         elif 11 <= value < 12:
-            return 'grupo5_(11 - 12)'
+            return 'grupo5'
         else:
             return '>12'
             
@@ -132,6 +139,24 @@ class TSNEClusterer:
             print(f"Erro no cálculo do t-SNE para o grupo: {group_data['pchembl_group'].iloc[0]} - {e}")
         return [], group_data['pchembl_group'].iloc[0]  # Retorna lista vazia e grupo
 
+    def calculate_tsne_pkidb(self):
+        # Certifique-se de que os fingerprints do PKIDB estão sendo calculados corretamente
+        self.pkidb_data['fingerprint'] = self.pkidb_data['Canonical_Smiles'].apply(self.smiles_to_fingerprint)
+        self.pkidb_data.dropna(subset=['fingerprint'], inplace=True)
+    
+        # Calculando t-SNE para o PKIDB
+        if not self.pkidb_data.empty:
+            fingerprints = list(self.pkidb_data['fingerprint'])
+            fingerprints_matrix = np.array(fingerprints)
+            tsne_pkidb = TSNE(n_components=2, random_state=0, perplexity=30)
+            tsne_results_pkidb = tsne_pkidb.fit_transform(fingerprints_matrix)
+        
+            # Salvando os resultados
+             
+            tsne_pkidb_df = pd.DataFrame(tsne_results_pkidb, columns=['x', 'y'])
+            tsne_pkidb_df.to_csv('PKIDB_tSNE_results.tsv', sep='\t', index=False)
+        else:
+             print("Nenhum fingerprint válido encontrado para PKIDB.")
 
     def plot_tsne(self):
         plt.figure(figsize=(12, 8))
@@ -139,16 +164,16 @@ class TSNEClusterer:
         # Cores e ordem de plotagem
         colors = {
             'sem_pchembl': 'grey',
-            'grupo1_(1 - 8)': 'blue',
-            'grupo2_(8 - 9)': 'green',
-            'grupo3_(9 - 10)': 'yellow',
-            'grupo4_(10 - 11)': 'orange',
-            'grupo5_(11 - 12)': 'purple',
+            'grupo1': 'blue',
+            'grupo2': 'green',
+            'grupo3': 'yellow',
+            'grupo4': 'orange',
+            'grupo5': 'purple',
             'PKIDB Ligantes': 'red'
         }
         plot_order = [
-            'sem_pchembl', 'grupo1_(1 - 8)', 'grupo2_(8 - 9)', 'grupo3_(9 - 10)',
-            'grupo4_(10 - 11)', 'grupo5_(11 - 12)', 'PKIDB Ligantes'
+            'sem_pchembl', 'grupo1', 'grupo2', 'grupo3',
+            'grupo4', 'grupo5', 'PKIDB Ligantes'
         ]
     
         # Plotagem de acordo com a ordem definida
@@ -182,12 +207,13 @@ class TSNEClusterer:
             group_data.to_csv(f'./kinases_{group}.tsv', sep='\t', index=False)
     
         # Salvar dados t-SNE de PKIDB
-        self.pkidb_data.to_csv('./PKIDB_tSNE_results.tsv', sep='\t', index=False)
+        self.pkidb_data.to_csv('./pkidb_tsne_results.tsv', sep='\t', index=False)
 
     def run(self):
         self.load_data()
         self.preprocess_data()
         self.calculate_tsne()
+        self.calculate_tsne_pkidb() 
         self.plot_tsne()
         self.save_data()
 
@@ -196,6 +222,48 @@ def calculate_tsne_parallel(tsne_clusterer, group):
     group_data = tsne_clusterer.data[tsne_clusterer.data['pchembl_group'] == group]
     return tsne_clusterer.calculate_tsne_for_group(group_data)
 
+def plot_normalized_tsne(chembl_file, pkidb_file):
+    chembl_data = pd.read_csv(chembl_file, sep='\t')
+    pkidb_data = pd.read_csv(pkidb_file, sep='\t')
+
+    # Normalizar os dados
+    scaler = MinMaxScaler()
+    chembl_data[['x', 'y']] = scaler.fit_transform(chembl_data[['x', 'y']])
+    pkidb_data[['x', 'y']] = scaler.transform(pkidb_data[['x', 'y']])
+
+    # Cores e ordem de plotagem
+    colors = {
+        'sem_pchembl': 'grey',
+        'grupo1': 'blue',
+        'grupo2': 'green',
+        'grupo3': 'yellow',
+        'grupo4': 'orange',
+        'grupo5': 'purple',
+        'PKIDB Ligantes': 'red'
+    }
+    plot_order = [
+        'sem_pchembl', 'grupo1', 'grupo2', 'grupo3',
+        'grupo4', 'grupo5', 'PKIDB Ligantes'
+    ]
+
+    # Plotar os dados normalizados com cores específicas para cada grupo
+    plt.figure(figsize=(12, 8))
+    
+    # Plotagem de acordo com a ordem definida
+    for group in plot_order[:-1]:  # Exclua 'PKIDB Ligantes' desta iteração
+        if group in chembl_data['group'].unique():
+            subset = chembl_data[chembl_data['group'] == group]
+            plt.scatter(subset['x'], subset['y'], color=colors[group], label=group, alpha=0.5)
+
+    # Plotar os dados do PKIDB
+    if 'x' in pkidb_data.columns and 'y' in pkidb_data.columns:
+        plt.scatter(pkidb_data['x'], pkidb_data['y'], color=colors['PKIDB Ligantes'], label='PKIDB Ligantes', alpha=0.5)
+
+    plt.legend()
+    plt.title('Normalized t-SNE Plot of Chembl and PKIDB')
+    plt.xlabel('t-SNE feature 0')
+    plt.ylabel('t-SNE feature 1')
+    plt.show()
 
 def main():
     tsne_clusterer = TSNEClusterer('./nr_kinase_drug_info_kd_ki_manually_validated.tsv', './pkidb_2023-06-30.tsv')
@@ -215,9 +283,19 @@ def main():
     tsne_clusterer.tsne_df = pd.DataFrame(tsne_clusterer.tsne_results, columns=['x', 'y'])
     tsne_clusterer.tsne_df['group'] = tsne_clusterer.group_labels
     
+    # Salvar os resultados do t-SNE para os dados do ChEMBL
+    tsne_clusterer.save_tsne_results('chembl_tsne_results.tsv')
+
+    # Calcular t-SNE para os dados do PKIDB e salvar os resultados
+    tsne_clusterer.calculate_tsne_pkidb()
+    tsne_clusterer.pkidb_data.to_csv('pkidb_tsne_results.tsv', sep='\t', index=False)
+
+    # Plotar os dados normalizados
+    plot_normalized_tsne('chembl_tsne_results.tsv', 'PKIDB_tSNE_results.tsv')
+
     # Continuar com o restante da execução
-    tsne_clusterer.plot_tsne()
-    tsne_clusterer.save_data()
+    # tsne_clusterer.plot_tsne()
+    # tsne_clusterer.save_data()
 
 if __name__ == '__main__':
     main()
