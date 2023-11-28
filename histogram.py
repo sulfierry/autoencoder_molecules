@@ -44,3 +44,21 @@ def calculate_distance(fingerprints, distance_metric):
                 dist = np.sum(np.abs(arr1 - arr2))
             distances.append(dist)
     return distances
+
+
+# Carregar o arquivo .tsv
+file_path = './kinases_grupo4.tsv'  # Substitua pelo caminho correto do arquivo
+data = pd.read_csv(file_path, sep='\t')
+
+# Preparar fingerprints
+data['fingerprints'] = data['canonical_smiles'].apply(smiles_to_fingerprint)
+valid_fps = data['fingerprints'].dropna().tolist()
+
+# Calcular todas as similaridades e distâncias
+similarity_metrics = ['tanimoto', 'dice', 'cosine']
+distance_metrics = ['hamming', 'manhattan']
+all_similarities = {metric: calculate_similarity(valid_fps, metric) for metric in similarity_metrics}
+all_distances = {metric: calculate_distance(valid_fps, metric) for metric in distance_metrics}
+
+# Inicializar figura para os subplots
+fig, axs = plt.subplots(3, 2, figsize=(15, 15))  # 3 linhas, 2 colunas
