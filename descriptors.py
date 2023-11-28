@@ -30,7 +30,7 @@ def plot_histograms(descriptor_data, descriptor_names):
         axs[i].set_ylabel('Frequência')
 
     plt.tight_layout() # Ajusta o layout para que não haja sobreposição
-    plt.savefig('./nr_descriptros_histogram.png')
+#    plt.savefig('./nr_descriptros_histogram.png')
     plt.show()
 
 # Altere para o caminho do seu arquivo
@@ -82,9 +82,9 @@ def plot_histograms_normalizados_sobrepostos(data1, data2, descritores):
     for i, desc in enumerate(descritores):
         axs[i].hist(data1[desc], bins=30, alpha=0.5, label='nr_Chembl', edgecolor='black', density=True)
         axs[i].hist(data2[desc], bins=30, alpha=0.5, label='PKIDB', edgecolor='black', density=True)
-        axs[i].set_title(f'Histograma do Descritor: {desc}')
-        axs[i].set_xlabel(desc)
-        axs[i].set_ylabel('Densidade')
+        axs[i].set_title(f'{desc}')
+        #axs[i].set_xlabel(desc)
+        axs[i].set_ylabel('Density')
         axs[i].legend()
 
     plt.tight_layout()
