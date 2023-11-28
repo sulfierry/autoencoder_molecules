@@ -77,3 +77,14 @@ for ax, (metric, values) in zip(axs[:, 1], all_distances.items()):
     ax.set_title(f'Histograma de Distância - {metric.capitalize()}')
     #ax.set_xlabel('Distância')
     ax.set_ylabel('Frequência')
+
+
+# Plotar histograma dos valores de pChEMBL no último subplot
+axs[2, 1].hist(data['pchembl_value'].dropna(), bins=20, color='green', edgecolor='black')
+axs[2, 1].set_title('Histograma para pChEMBL Value')
+#axs[2, 1].set_xlabel('pChEMBL Value')
+axs[2, 1].set_ylabel('Frequência')
+
+plt.tight_layout()
+plt.savefig('./histogram_similarity_distance.png')
+plt.show()
