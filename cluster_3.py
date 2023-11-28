@@ -58,7 +58,7 @@ class TSNEClusterer:
             
     def calculate_tsne_for_group(self, group_data):
         # Este método será chamado em paralelo para cada grupo
-        fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
+        fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['canonical_smiles'] if smiles]
         fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
         if len(fingerprints_matrix) > 5:
             tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
@@ -121,12 +121,17 @@ class TSNEClusterer:
 
 
     def calculate_tsne_for_group(self, group_data):
-        fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['smiles'] if smiles]
-        fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
-        if len(fingerprints_matrix) > 5:
-            tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
-            tsne_result = tsne.fit_transform(fingerprints_matrix)
-            return tsne_result, group_data['pchembl_group'].iloc[0]
+        try:
+            fingerprints = [self.smiles_to_fingerprint(smiles) for smiles in group_data['canonical_smiles'] if smiles]
+            fingerprints_matrix = np.array([fp for fp in fingerprints if fp is not None])
+            if len(fingerprints_matrix) > 5:
+                tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
+                tsne_result = tsne.fit_transform(fingerprints_matrix)
+                return tsne_result, group_data['pchembl_group'].iloc[0]
+        except Exception as e:
+            print(f"Erro no cálculo do t-SNE para o grupo: {group_data['pchembl_group'].iloc[0]} - {e}")
+        return [], group_data['pchembl_group'].iloc[0]  # Retorna lista vazia e grupo
+
 
     def plot_tsne(self):
         plt.figure(figsize=(12, 8))
@@ -163,8 +168,9 @@ class TSNEClusterer:
         plt.title('Distribuição dos Ligantes por Grupo de pChEMBL Value com PKIDB (2D)')
         plt.xlabel('t-SNE feature 0')
         plt.ylabel('t-SNE feature 1')
-        plt.show()
         plt.savefig('./tsne_chembl_pkidb_clusters.png')
+        plt.show()
+        
 
     def save_data(self):
         # Salvar grupos sem pchembl_value
@@ -192,7 +198,7 @@ def calculate_tsne_parallel(tsne_clusterer, group):
 
 
 def main():
-    tsne_clusterer = TSNEClusterer('./kinase_ligands_pchembl_Value.tsv', '../PKIDB/pkidb_2023-06-30.tsv')
+    tsne_clusterer = TSNEClusterer('./nr_kinase_drug_info_kd_ki_manually_validated.tsv', './pkidb_2023-06-30.tsv')
     tsne_clusterer.load_data()
     tsne_clusterer.preprocess_data()
     
@@ -215,4 +221,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
