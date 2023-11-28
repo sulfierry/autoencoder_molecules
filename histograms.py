@@ -12,7 +12,6 @@ def smiles_to_fingerprint(smiles, radius=2):
     mol = Chem.MolFromSmiles(smiles)
     return AllChem.GetMorganFingerprintAsBitVect(mol, radius) if mol else None
 
-
 def calculate_similarity(fingerprints, similarity_metric):
     """Calcula similaridades entre todos os pares de fingerprints."""
     similarities = []
@@ -45,7 +44,6 @@ def calculate_distance(fingerprints, distance_metric):
             distances.append(dist)
     return distances
 
-
 # Carregar o arquivo .tsv
 file_path = './kinases_grupo4.tsv'  # Substitua pelo caminho correto do arquivo
 data = pd.read_csv(file_path, sep='\t')
@@ -61,29 +59,27 @@ all_similarities = {metric: calculate_similarity(valid_fps, metric) for metric i
 all_distances = {metric: calculate_distance(valid_fps, metric) for metric in distance_metrics}
 
 # Inicializar figura para os subplots
-fig, axs = plt.subplots(3, 2, figsize=(15, 15))  # 3 linhas, 2 colunas
-
+fig, axs = plt.subplots(3, 2, figsize=(13, 13))  # 3 linhas, 2 colunas
 
 # Plotar histogramas das similaridades
 for ax, (metric, values) in zip(axs[:, 0], all_similarities.items()):
     ax.hist(values, bins=50, color='skyblue', edgecolor='black')
-    ax.set_title(f'Histograma de Similaridade - {metric.capitalize()}')
+    ax.set_title(f'Similarity histogram - {metric.capitalize()}', fontsize=10)
     #ax.set_xlabel('Similaridade')
-    ax.set_ylabel('Frequência')
+    ax.set_ylabel('Frequency')
 
 # Plotar histogramas das distâncias
 for ax, (metric, values) in zip(axs[:, 1], all_distances.items()):
     ax.hist(values, bins=50, color='salmon', edgecolor='black')
-    ax.set_title(f'Histograma de Distância - {metric.capitalize()}')
+    ax.set_title(f'Distance histogram - {metric.capitalize()}', fontsize=10)
     #ax.set_xlabel('Distância')
-    ax.set_ylabel('Frequência')
-
+    ax.set_ylabel('Frequency')
 
 # Plotar histograma dos valores de pChEMBL no último subplot
 axs[2, 1].hist(data['pchembl_value'].dropna(), bins=20, color='green', edgecolor='black')
-axs[2, 1].set_title('Histograma para pChEMBL Value')
+axs[2, 1].set_title('ChEMBL value histogram', fontsize=10)
 #axs[2, 1].set_xlabel('pChEMBL Value')
-axs[2, 1].set_ylabel('Frequência')
+axs[2, 1].set_ylabel('Frequency')
 
 plt.tight_layout()
 plt.savefig('./histogram_similarity_distance.png')
