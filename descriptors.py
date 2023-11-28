@@ -49,10 +49,10 @@ class MolecularDescriptors:
         density_axis.set_ylabel('Density', labelpad=40)  # Definir rótulo y
 
         for i, desc in enumerate(self.descriptor_names):
-            axs[i].hist(self.descriptor_data[desc], bins=30, alpha=0.5, label='Current Data', edgecolor='black', density=True)
+            axs[i].hist(self.descriptor_data[desc], bins=30, alpha=0.5, label='nr_ChEMBL', edgecolor='black', density=True)
             if additional_data_path:
                 additional_data = pd.read_csv(additional_data_path, sep='\t')
-                axs[i].hist(additional_data[desc], bins=30, alpha=0.5, label='Additional Data', edgecolor='black', density=True)
+                axs[i].hist(additional_data[desc], bins=30, alpha=0.5, label='PKIDB', edgecolor='black', density=True)
             axs[i].set_title(f'{desc}', fontsize=9)
 
         # Posicionar a legenda fora do plot no canto superior direito do último gráfico da primeira linha
@@ -82,10 +82,11 @@ class MolecularDescriptors:
 
 
 def main():
+
     # Caminhos dos arquivos
-    data_file_path = 'nr_kinase_drug_info_kd_ki_manually_validated.tsv'
+    data_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     additional_data_file_path = './pkidb_2023-06-30.tsv'
-    output_file_path = 'descritores_moleculares.tsv'
+    output_file_path = './descritores_moleculares.tsv'
     histogram_output_path = './pkidb_nr_chembl_histogram.png'
 
     # Criar instância da classe
