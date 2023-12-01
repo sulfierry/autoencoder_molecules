@@ -84,7 +84,7 @@ class MolecularDescriptors:
 def main():
 
     # Caminhos dos arquivos
-    data_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
+    data_file_path = './nr_kinase_drug_manually_validated.tsv'
     additional_data_file_path = './pkidb_2023-06-30.tsv'
     output_file_path = './descritores_moleculares.tsv'
     histogram_output_path = './pkidb_nr_chembl_histogram.png'
