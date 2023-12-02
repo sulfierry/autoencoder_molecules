@@ -12,7 +12,13 @@ from scipy.spatial.distance import pdist, squareform
 from concurrent.futures import ProcessPoolExecutor
 
 def tanimoto_similarity(fp1, fp2):
+    # Convertendo os fingerprints de NumPy arrays para ExplicitBitVects, se necessário
+    if isinstance(fp1, np.ndarray):
+        fp1 = DataStructs.ExplicitBitVect(fp1.tolist())
+    if isinstance(fp2, np.ndarray):
+        fp2 = DataStructs.ExplicitBitVect(fp2.tolist())
     return DataStructs.FingerprintSimilarity(fp1, fp2, metric=DataStructs.TanimotoSimilarity)
+
 
 
 
@@ -50,8 +56,10 @@ class TSNEClusterer:
             print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
             return None
     
+        # Calculando a matriz de similaridade usando os fingerprints do RDKit
         similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
         return squareform(similarity_matrix)
+
 
 
 
