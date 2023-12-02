@@ -35,14 +35,17 @@ class TSNEClusterer:
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
-
+        
     def preprocess_data(self):
         self.pkidb_data['fingerprint'] = self.pkidb_data['Canonical_Smiles'].apply(self.smiles_to_fingerprint)
         self.pkidb_data.dropna(subset=['fingerprint'], inplace=True)
 
     def calculate_similarity_matrix(self):
-        fingerprints = list(self.pkidb_data['fingerprint'])
-        similarity_matrix = pdist(fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
+        # Filtrar dados para garantir que todos os fingerprints são válidos
+        valid_fingerprints = self.pkidb_data['fingerprint'].dropna()
+        
+        # Calcular a matriz de similaridade somente com fingerprints válidos
+        similarity_matrix = pdist(valid_fingerprints.tolist(), lambda u, v: 1 - tanimoto_similarity(u, v))
         return squareform(similarity_matrix)
 
     def cluster_molecules(self, similarity_matrix, threshold=0.8):
