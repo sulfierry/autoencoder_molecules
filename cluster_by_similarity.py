@@ -66,26 +66,32 @@ class TSNEClusterer:
         print(f'Fingerprints convertidos com {failed_conversions} falhas.')
         self.pkidb_data.dropna(subset=['fingerprint'], inplace=True)
 
-        
+            
     def calculate_similarity_matrix(self):
         valid_fingerprints = [fp for fp in self.pkidb_data['fingerprint'] if fp is not None]
         print(f'Calculando matriz de similaridade para {len(valid_fingerprints)} fingerprints válidos...')
+        
+        # Inicialize similarity_matrix como None para garantir que ela tenha um valor em todos os casos
+        similarity_matrix = None
+        
         if len(valid_fingerprints) < 2:
             print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
-            return None
+        else:
+            # Calcula a matriz de distância condensada
+            similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
+            print(f'Matriz de similaridade calculada com tamanho: {similarity_matrix.size}.')
         
-        print("Valores de similaridade:", np.unique(similarity_matrix))
-        plt.hist(similarity_matrix, bins=50)
-        plt.title('Distribuição dos Valores de Similaridade')
-        plt.xlabel('Similaridade de Tanimoto')
-        plt.ylabel('Frequência')
-        plt.show()
+        # A visualização da distribuição dos valores de similaridade só deve ocorrer se similarity_matrix não for None
+        if similarity_matrix is not None:
+            print("Valores de similaridade:", np.unique(similarity_matrix))
+            plt.hist(similarity_matrix, bins=50)
+            plt.title('Distribuição dos Valores de Similaridade')
+            plt.xlabel('Similaridade de Tanimoto')
+            plt.ylabel('Frequência')
+            plt.show()
+        
         return similarity_matrix
-    
-        # Retorna a matriz de distância condensada diretamente
-        similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
-        print(f'Matriz de similaridade calculada com tamanho: {similarity_matrix.size}.')
-        return similarity_matrix
+
     
     def normalize_tsne_results(self):
         scaler = MinMaxScaler(feature_range=(-1, 1))
