@@ -124,7 +124,7 @@ class TSNEClusterer:
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
         tsne_df.to_csv(filename, sep='\t', index=False)
-    print(f'Resultados do t-SNE salvos em {filename}.')
+        print(f'Resultados do t-SNE salvos em {filename}.')
 
     def plot_tsne(self):
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
