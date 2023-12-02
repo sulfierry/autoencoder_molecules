@@ -73,6 +73,14 @@ class TSNEClusterer:
         if len(valid_fingerprints) < 2:
             print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
             return None
+        
+        print("Valores de similaridade:", np.unique(similarity_matrix))
+        plt.hist(similarity_matrix, bins=50)
+        plt.title('Distribuição dos Valores de Similaridade')
+        plt.xlabel('Similaridade de Tanimoto')
+        plt.ylabel('Frequência')
+        plt.show()
+        return similarity_matrix
     
         # Retorna a matriz de distância condensada diretamente
         similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
