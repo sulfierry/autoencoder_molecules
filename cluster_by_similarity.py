@@ -127,9 +127,15 @@ class TSNEClusterer:
         tsne_df.to_csv(filename, sep='\t', index=False)
         print(f'Resultados do t-SNE salvos em {filename}.')
 
+    # Antes de chamar plot_tsne, verifique os clusters
+    print("Clusters únicos:", np.unique(self.group_labels))
+    
     def plot_tsne(self):
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
+        
+        # Verifique se os clusters variam como esperado
+        print(tsne_df['cluster'].value_counts())
     
         plt.figure(figsize=(12, 8))
         scatter = plt.scatter(tsne_df['x'], tsne_df['y'], c=tsne_df['cluster'], cmap='viridis', alpha=0.5)
@@ -140,6 +146,7 @@ class TSNEClusterer:
         plt.xlim(-1, 1)
         plt.ylim(-1, 1)
         plt.show()
+
 
 
     def run(self):
