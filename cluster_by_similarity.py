@@ -94,23 +94,30 @@ class TSNEClusterer:
 
     
     def normalize_tsne_results(self):
+        print(f'Resultados do t-SNE antes da normalização: {self.tsne_results[:5]}')
         scaler = MinMaxScaler(feature_range=(-1, 1))
         self.tsne_results = scaler.fit_transform(self.tsne_results)
+        print(f'Resultados do t-SNE após a normalização: {self.tsne_results[:5]}')
         print(f'Resultados do t-SNE normalizados.')
         
     def cluster_molecules(self, condensed_similarity_matrix, threshold=0.8):
         print(f'Agrupando com base na matriz de similaridade condensada...')
         linked = linkage(condensed_similarity_matrix, 'single')
         clusters = fcluster(linked, t=threshold, criterion='distance')
-        print(f'{len(np.unique(clusters))} clusters formados.')
+        print(f'Clusters formados: {np.unique(clusters)}')
+        print(f'Contagem por cluster: {np.bincount(clusters)}')
         return clusters
 
 
     def calculate_tsne(self):
         similarity_matrix = self.calculate_similarity_matrix()
-
         if similarity_matrix is None:
-            return  # Encerrar a função se a matriz de similaridade não puder ser calculada
+            return
+
+        clusters = self.cluster_molecules(similarity_matrix)
+        print(f'Clusters atribuídos: {clusters}')
+        self.pkidb_data['cluster'] = clusters
+        print(f'Distribuição de clusters antes da normalização do t-SNE: {self.pkidb_data["cluster"].value_counts()}')
 
         self.pkidb_data['cluster'] = self.cluster_molecules(similarity_matrix)
 
@@ -148,7 +155,8 @@ class TSNEClusterer:
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
         
-        # Verifique se os clusters variam como esperado
+        # Verificação final dos clusters antes da plotagem
+        print(f'Clusters finais a serem plotados: {np.unique(tsne_df["cluster"])}')
         print(tsne_df['cluster'].value_counts())
     
         plt.figure(figsize=(12, 8))
