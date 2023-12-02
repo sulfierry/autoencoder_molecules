@@ -179,27 +179,6 @@ class TSNEClusterer:
         tsne_df.to_csv(filename, sep='\t', index=False)
         print(f'Resultados do t-SNE salvos em {filename}.')
 
-"""
-    def plot_tsne(self):
-        print("Clusters únicos:", np.unique(self.group_labels))
-
-        tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
-        tsne_df['cluster'] = self.group_labels
-        
-        # Verificação final dos clusters antes da plotagem
-        print(f'Clusters finais a serem plotados: {np.unique(tsne_df["cluster"])}')
-        print(tsne_df['cluster'].value_counts())
-    
-        plt.figure(figsize=(12, 8))
-        scatter = plt.scatter(tsne_df['x'], tsne_df['y'], c=tsne_df['cluster'], cmap='viridis', alpha=0.5)
-        plt.colorbar(scatter)
-        plt.title('t-SNE Clustering Based on Tanimoto Similarity')
-        plt.xlabel('t-SNE feature 0')
-        plt.ylabel('t-SNE feature 1')
-        plt.xlim(-1, 1)
-        plt.ylim(-1, 1)
-        plt.show()
-"""
     def plot_tsne(self):
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
