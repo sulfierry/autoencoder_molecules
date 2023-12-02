@@ -145,6 +145,20 @@ class TSNEClusterer:
         self.normalize_tsne_results()
         self.plot_tsne()
         self.save_tsne_results('./tsne_cluster_similarity.tsv')
+    
+    def calculate_tsne_for_fingerprints(self, fingerprints, cluster_id):
+        # Certifique-se de que há fingerprints suficientes para calcular o t-SNE
+        if len(fingerprints) > 5:
+            try:
+                fingerprints_matrix = np.array(fingerprints)
+                tsne = TSNE(n_components=2, random_state=0, perplexity=min(30, len(fingerprints_matrix) - 1))
+                tsne_result = tsne.fit_transform(fingerprints_matrix)
+                return tsne_result, cluster_id
+            except Exception as e:
+                print(f"Erro ao calcular t-SNE para o cluster {cluster_id}: {e}")
+        else:
+            print(f"Não há fingerprints suficientes para o cluster {cluster_id}.")
+        return [], cluster_id  # Retorna uma lista vazia se não houver dados suficientes ou ocorrer um erro
 
     def calculate_tsne_for_fingerprints(self, fingerprints, cluster_id):
         if len(fingerprints) > 5:
@@ -187,9 +201,13 @@ class TSNEClusterer:
         self.load_data()
         self.preprocess_data()
         self.calculate_tsne()
-        self.normalize_tsne_results()
-        self.plot_tsne()
-        self.save_tsne_results('./tsne_cluster_similarity.tsv')  # Especifica o caminho desejado para o arquivo de saída
+        
+        if self.tsne_results:  # Verifique se há resultados antes de normalizar
+            self.normalize_tsne_results()
+            self.plot_tsne()
+            self.save_tsne_results('./tsne_cluster_similarity.tsv')
+        else:
+            print("Não há resultados do t-SNE para processar.")
     
 
 
