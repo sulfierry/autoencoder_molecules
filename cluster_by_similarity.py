@@ -147,7 +147,7 @@ class TSNEClusterer:
         self.calculate_tsne()
         self.normalize_tsne_results()
         self.plot_tsne()
-        self.save_tsne_results('tsne_cluster_similarity.tsv')  # Especifica o caminho desejado para o arquivo de saída
+        self.save_tsne_results('./tsne_cluster_similarity.tsv')  # Especifica o caminho desejado para o arquivo de saída
     
 
 
