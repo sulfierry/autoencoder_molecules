@@ -107,39 +107,51 @@ class TSNEClusterer:
         print(f'Clusters formados: {np.unique(clusters)}')
         print(f'Contagem por cluster: {np.bincount(clusters)[1:]}')  # O índice 0 é ignorado pois não há cluster 0
         return clusters
-
+        
     def calculate_tsne(self):
+        # Primeiro, calculamos a matriz de similaridade
         similarity_matrix = self.calculate_similarity_matrix()
         if similarity_matrix is None:
+            print("Não foi possível calcular a matriz de similaridade.")
             return
 
-        clusters = self.cluster_molecules(similarity_matrix)
-        print(f'Clusters atribuídos: {clusters}')
-        self.pkidb_data['cluster'] = clusters
-        print(f'Distribuição de clusters antes da normalização do t-SNE: {self.pkidb_data["cluster"].value_counts()}')
-        
-        # Adicione um dendrograma para ajudar a visualizar como os pontos estão sendo agrupados
+        # Visualizamos o dendrograma para ajudar a determinar o número adequado de clusters
         plt.figure(figsize=(10, 7))
         plt.title("Dendrograma dos Clusters")
-        dendro = linkage(condensed_similarity_matrix, method='average')
-        from scipy.cluster.hierarchy import dendrogram
+        dendro = linkage(similarity_matrix, method='average')
         dendrogram(dendro)
         plt.show()
-        #self.pkidb_data['cluster'] = self.cluster_molecules(similarity_matrix)
 
+        # Após a visualização, realizamos o agrupamento
+        clusters = self.cluster_molecules(similarity_matrix, threshold=0.5)
+        if clusters is None:
+            print("Não foi possível calcular os clusters.")
+            return
+        
+        # Atribuímos os rótulos dos clusters aos dados e prosseguimos com o cálculo do t-SNE
+        self.pkidb_data['cluster'] = clusters
+        print(f'Distribuição de clusters após o agrupamento: {self.pkidb_data["cluster"].value_counts()}')
+
+        # Preparamos a execução do t-SNE em paralelo para cada cluster
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = []
-            for cluster_id in self.pkidb_data['cluster'].unique():
+            for cluster_id in np.unique(clusters):
                 cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
                 fingerprints = list(cluster_data['fingerprint'])
                 futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
 
+            # Coletamos os resultados do t-SNE
             for future in concurrent.futures.as_completed(futures):
                 result, cluster_id = future.result()
                 if result is not None:
                     self.tsne_results.extend(result)
                     self.group_labels.extend([cluster_id] * len(result))
 
+        # Normalizamos e plotamos os resultados do t-SNE
+        self.normalize_tsne_results()
+        self.plot_tsne()
+        self.save_tsne_results('./tsne_cluster_similarity.tsv')
+        
     def calculate_tsne_for_fingerprints(self, fingerprints, cluster_id):
         if len(fingerprints) > 5:
             fingerprints_matrix = np.array(fingerprints)
