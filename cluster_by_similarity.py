@@ -92,3 +92,12 @@ class TSNEClusterer:
         self.preprocess_data()
         self.calculate_tsne()
         self.plot_tsne()
+
+
+def main():
+    tsne_clusterer = TSNEClusterer('./nr_kinase_drug_info_kd_ki_manually_validated.tsv', './pkidb_2023-06-30.tsv')
+    tsne_clusterer.run()
+
+if __name__ == '__main__':
+    main()
+
