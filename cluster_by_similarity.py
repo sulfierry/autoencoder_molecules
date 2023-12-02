@@ -12,15 +12,18 @@ from scipy.spatial.distance import pdist, squareform
 from concurrent.futures import ProcessPoolExecutor
 
 def tanimoto_similarity(fp1, fp2):
-    # Convertendo os fingerprints de NumPy arrays para ExplicitBitVects, se necessário
+    # Garantindo que fp1 e fp2 sejam objetos ExplicitBitVect
     if isinstance(fp1, np.ndarray):
-        fp1 = DataStructs.ExplicitBitVect(fp1.tolist())
+        # Convertendo o NumPy array para string de bits
+        fp1_bits = ''.join(map(str, fp1.tolist()))
+        fp1 = DataStructs.ExplicitBitVect.FromBitString(fp1_bits)
+
     if isinstance(fp2, np.ndarray):
-        fp2 = DataStructs.ExplicitBitVect(fp2.tolist())
+        # Convertendo o NumPy array para string de bits
+        fp2_bits = ''.join(map(str, fp2.tolist()))
+        fp2 = DataStructs.ExplicitBitVect.FromBitString(fp2_bits)
+
     return DataStructs.FingerprintSimilarity(fp1, fp2, metric=DataStructs.TanimotoSimilarity)
-
-
-
 
 class TSNEClusterer:
     def __init__(self, data_path, pkidb_path):
