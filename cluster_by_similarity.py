@@ -209,20 +209,23 @@ class TSNEClusterer:
                 print("Número insuficiente de clusters para calcular t-SNE.")
                 return
 
-            # Processamento paralelo para cálculo do t-SNE
-            with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-                futures = []
-                for cluster_id in np.unique(clusters):
-                    cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
-                    fingerprints = list(cluster_data['fingerprint'])
-                    if fingerprints:  # Verifique se a lista de fingerprints não está vazia
-                        futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
 
-                for future in concurrent.futures.as_completed(futures):
-                    result, cluster_id = future.result()
-                    if result:  # Verifique se o resultado não está vazio
-                        self.tsne_results.extend(result)
-                        self.group_labels.extend([cluster_id] * len(result))
+        # Processamento paralelo para cálculo do t-SNE
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = []
+            for cluster_id in np.unique(clusters):
+                cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
+                fingerprints = list(cluster_data['fingerprint'])
+                if fingerprints:  # Verifique se a lista de fingerprints não está vazia
+                    futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
+
+            for future in concurrent.futures.as_completed(futures):
+                tsne_result, cluster_id = future.result()
+                if tsne_result:  # Correção: verifica se tsne_result não está vazio
+                    self.tsne_results.extend(tsne_result)
+                    self.group_labels.extend([cluster_id] * len(tsne_result))
+ 
+
 
             # Verifique se os resultados do t-SNE não estão vazios antes de plotar
             if not self.tsne_results:
