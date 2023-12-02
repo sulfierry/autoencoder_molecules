@@ -109,49 +109,43 @@ class TSNEClusterer:
         return clusters
         
     def calculate_tsne(self):
-        # Primeiro, calculamos a matriz de similaridade
         similarity_matrix = self.calculate_similarity_matrix()
         if similarity_matrix is None:
             print("Não foi possível calcular a matriz de similaridade.")
             return
 
-        # Visualizamos o dendrograma para ajudar a determinar o número adequado de clusters
-        plt.figure(figsize=(10, 7))
-        plt.title("Dendrograma dos Clusters")
-        dendro = linkage(similarity_matrix, method='average')
-        dendrogram(dendro)
-        plt.show()
-
-        # Após a visualização, realizamos o agrupamento
         clusters = self.cluster_molecules(similarity_matrix, threshold=0.5)
-        if clusters is None:
-            print("Não foi possível calcular os clusters.")
-            return
-        
-        # Atribuímos os rótulos dos clusters aos dados e prosseguimos com o cálculo do t-SNE
         self.pkidb_data['cluster'] = clusters
-        print(f'Distribuição de clusters após o agrupamento: {self.pkidb_data["cluster"].value_counts()}')
 
-        # Preparamos a execução do t-SNE em paralelo para cada cluster
+        # Verifique se o número de clusters é maior que 1 para continuar com o t-SNE
+        if len(np.unique(clusters)) <= 1:
+            print("Número insuficiente de clusters para calcular t-SNE.")
+            return
+
+        # Processamento paralelo para cálculo do t-SNE
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = []
             for cluster_id in np.unique(clusters):
                 cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
                 fingerprints = list(cluster_data['fingerprint'])
-                futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
+                if fingerprints:  # Verifique se a lista de fingerprints não está vazia
+                    futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
 
-            # Coletamos os resultados do t-SNE
             for future in concurrent.futures.as_completed(futures):
                 result, cluster_id = future.result()
-                if result is not None:
+                if result:  # Verifique se o resultado não está vazio
                     self.tsne_results.extend(result)
                     self.group_labels.extend([cluster_id] * len(result))
 
-        # Normalizamos e plotamos os resultados do t-SNE
+        # Verifique se os resultados do t-SNE não estão vazios antes de normalizar
+        if not self.tsne_results:
+            print("Nenhum resultado do t-SNE para normalizar.")
+            return
+
         self.normalize_tsne_results()
         self.plot_tsne()
         self.save_tsne_results('./tsne_cluster_similarity.tsv')
-        
+
     def calculate_tsne_for_fingerprints(self, fingerprints, cluster_id):
         if len(fingerprints) > 5:
             fingerprints_matrix = np.array(fingerprints)
