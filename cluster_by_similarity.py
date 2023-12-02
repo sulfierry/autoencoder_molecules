@@ -93,12 +93,10 @@ class TSNEClusterer:
             # Visualize o dendrograma
             plt.figure(figsize=(10, 7))
             plt.title("Dendrograma dos Clusters")
-            dendrogram(linkage(similarity_matrix, method='ward'))
+            dendro = dendrogram(linkage(similarity_matrix, method='ward'))
             plt.show()
         return similarity_matrix
         
-        return similarity_matrix
-
     
     def normalize_tsne_results(self):
         print(f'Resultados do t-SNE antes da normalização: {self.tsne_results[:5]}')
@@ -181,7 +179,7 @@ class TSNEClusterer:
         tsne_df.to_csv(filename, sep='\t', index=False)
         print(f'Resultados do t-SNE salvos em {filename}.')
 
-    
+"""
     def plot_tsne(self):
         print("Clusters únicos:", np.unique(self.group_labels))
 
@@ -201,21 +199,58 @@ class TSNEClusterer:
         plt.xlim(-1, 1)
         plt.ylim(-1, 1)
         plt.show()
+"""
+    def plot_tsne(self):
+        tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
+        tsne_df['cluster'] = self.group_labels
+        plt.figure(figsize=(12, 8))
+        scatter = plt.scatter(tsne_df['x'], tsne_df['y'], c=tsne_df['cluster'], cmap='viridis', alpha=0.6)
+        plt.colorbar(scatter)
+        plt.title('t-SNE Clustering Based on Tanimoto Similarity')
+        plt.xlabel('t-SNE feature 0')
+        plt.ylabel('t-SNE feature 1')
+        plt.show()
 
 
 
     def run(self):
         self.load_data()
         self.preprocess_data()
-        self.calculate_tsne()
-        
-        if self.tsne_results:  # Verifique se há resultados antes de normalizar
-            self.normalize_tsne_results()
-            self.plot_tsne()
-            self.save_tsne_results('./tsne_cluster_similarity.tsv')
-        else:
-            print("Não há resultados do t-SNE para processar.")
-    
+
+        # Calcular matriz de similaridade e plotar dendrograma
+        similarity_matrix = self.calculate_similarity_matrix()
+
+        # Escolher um valor de corte baseado na visualização do dendrograma
+        cutoff = 1.5  # Ajuste este valor conforme observado no dendrograma
+        clusters = fcluster(linkage(similarity_matrix, method='ward'), cutoff, criterion='distance')
+
+        # Verifique se o número de clusters é maior que 1 para prosseguir com o t-SNE
+        if len(np.unique(clusters)) <= 1:
+            print("Número insuficiente de clusters para calcular t-SNE.")
+            return
+
+        # Processamento paralelo para cálculo do t-SNE
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = []
+            for cluster_id in np.unique(clusters):
+                cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
+                fingerprints = list(cluster_data['fingerprint'])
+                if fingerprints:  # Verifique se a lista de fingerprints não está vazia
+                    futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
+
+            for future in concurrent.futures.as_completed(futures):
+                result, cluster_id = future.result()
+                if result:  # Verifique se o resultado não está vazio
+                    self.tsne_results.extend(result)
+                    self.group_labels.extend([cluster_id] * len(result))
+
+        # Verifique se os resultados do t-SNE não estão vazios antes de plotar
+        if not self.tsne_results:
+            print("Nenhum resultado do t-SNE para plotar.")
+            return
+
+        # Preparar e plotar os resultados do t-SNE
+        self.plot_tsne()
 
 
 def main():
