@@ -135,10 +135,10 @@ class TSNEClusterer:
         tsne_df.to_csv(filename, sep='\t', index=False)
         print(f'Resultados do t-SNE salvos em {filename}.')
 
-    # Antes de chamar plot_tsne, verifique os clusters
-    print("Clusters únicos:", np.unique(self.group_labels))
     
     def plot_tsne(self):
+        print("Clusters únicos:", np.unique(self.group_labels))
+
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
         
