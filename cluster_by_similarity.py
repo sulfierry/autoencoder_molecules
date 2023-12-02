@@ -4,8 +4,9 @@ from rdkit.Chem import AllChem, DataStructs
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
-from scipy.spatial.distance import squareform
-from multiprocessing import Pool, cpu_count
+import os
+from multiprocessing import Pool
+from tqdm import tqdm
 
 class MoleculeClusterer:
     def __init__(self, smiles_file_path):
@@ -26,14 +27,15 @@ class MoleculeClusterer:
         return MoleculeClusterer.smiles_to_fingerprint(smiles)
 
     def parallel_generate_fingerprints(self):
-        with Pool(cpu_count()) as pool:
-            self.fingerprints = pool.map(self.compute_fingerprint, self.data['canonical_smiles'])
+        num_cpus = os.cpu_count()
+        with Pool(num_cpus) as pool:
+            self.fingerprints = list(tqdm(pool.imap(self.compute_fingerprint, self.data['canonical_smiles']), total=len(self.data)))
         self.fingerprints = [fp for fp in self.fingerprints if fp is not None]
 
     def calculate_similarity_matrix(self):
         num_fps = len(self.fingerprints)
         similarity_matrix = np.zeros((num_fps, num_fps))
-        for i in range(num_fps):
+        for i in tqdm(range(num_fps)):  # Adicionando barra de progresso aqui
             for j in range(num_fps):
                 similarity_matrix[i, j] = DataStructs.TanimotoSimilarity(self.fingerprints[i], self.fingerprints[j])
         return similarity_matrix
