@@ -28,15 +28,17 @@ class TSNEClusterer:
     def load_data(self):
         self.data = pd.read_csv(self.data_path, sep='\t')
         self.pkidb_data = pd.read_csv(self.pkidb_path, sep='\t', usecols=['Canonical_Smiles'])
-            
+        
     def smiles_to_fingerprint(self, smiles):
         try:
             mol = Chem.MolFromSmiles(smiles)
             if mol:
-                return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2).ToBitString()  # Convertendo para BitString
+                # Retornando diretamente o ExplicitBitVect, sem convertê-lo para uma string
+                return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
+
 
     def preprocess_data(self):
         self.pkidb_data['fingerprint'] = self.pkidb_data['Canonical_Smiles'].apply(self.smiles_to_fingerprint)
@@ -44,15 +46,13 @@ class TSNEClusterer:
         
     def calculate_similarity_matrix(self):
         valid_fingerprints = [fp for fp in self.pkidb_data['fingerprint'] if fp is not None]
+        if len(valid_fingerprints) < 2:
+            print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
+            return None
     
-        # Converter as strings de bits de volta para fingerprints do RDKit
-        valid_fps = [DataStructs.ExplicitBitVect(fp) for fp in valid_fingerprints]
-    
-        similarity_matrix = pdist(valid_fps, lambda u, v: 1 - tanimoto_similarity(u, v))
-        return squareform(similarity_matrix)
-
         similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
         return squareform(similarity_matrix)
+
 
 
     def cluster_molecules(self, similarity_matrix, threshold=0.8):
