@@ -10,6 +10,12 @@ from sklearn.manifold import TSNE
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import pdist, squareform
 from concurrent.futures import ProcessPoolExecutor
+from sklearn.preprocessing import MinMaxScaler
+
+def normalize_tsne_results(self):
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    self.tsne_results = scaler.fit_transform(self.tsne_results)
+    print(f'Resultados do t-SNE normalizados.')
 
 def tanimoto_similarity(fp1, fp2):
     # Garantindo que fp1 e fp2 sejam objetos ExplicitBitVect
@@ -113,26 +119,36 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, cluster_id
         return [], cluster_id
-    
+        
+    def save_tsne_results(self, filename):
+        tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
+        tsne_df['cluster'] = self.group_labels
+        tsne_df.to_csv(filename, sep='\t', index=False)
+    print(f'Resultados do t-SNE salvos em {filename}.')
+
     def plot_tsne(self):
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
-        print(f'Plotando resultados do t-SNE para {tsne_df.shape[0]} pontos.')
-        print(tsne_df.head())  # Mostra as primeiras linhas do DataFrame para inspeção
     
         plt.figure(figsize=(12, 8))
-        plt.scatter(tsne_df['x'], tsne_df['y'], c=tsne_df['cluster'], cmap='viridis', alpha=0.5)
-        plt.colorbar()
+        scatter = plt.scatter(tsne_df['x'], tsne_df['y'], c=tsne_df['cluster'], cmap='viridis', alpha=0.5)
+        plt.colorbar(scatter)
         plt.title('t-SNE Clustering Based on Tanimoto Similarity')
         plt.xlabel('t-SNE feature 0')
         plt.ylabel('t-SNE feature 1')
+        plt.xlim(-1, 1)
+        plt.ylim(-1, 1)
         plt.show()
+
 
     def run(self):
         self.load_data()
         self.preprocess_data()
         self.calculate_tsne()
+        self.normalize_tsne_results()
         self.plot_tsne()
+        self.save_tsne_results('tsne_cluster_similarity.tsv')  # Especifica o caminho desejado para o arquivo de saída
+    
 
 
 def main():
