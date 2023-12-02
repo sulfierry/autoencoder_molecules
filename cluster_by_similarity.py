@@ -221,10 +221,10 @@ class TSNEClusterer:
 
             for future in concurrent.futures.as_completed(futures):
                 tsne_result, cluster_id = future.result()
-                if tsne_result:  # Correção: verifica se tsne_result não está vazio
+                if len(tsne_result) > 0:  # Correção: verifica se tsne_result não está vazio verificando o comprimento
                     self.tsne_results.extend(tsne_result)
                     self.group_labels.extend([cluster_id] * len(tsne_result))
- 
+
 
 
             # Verifique se os resultados do t-SNE não estão vazios antes de plotar
