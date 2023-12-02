@@ -14,16 +14,23 @@ from concurrent.futures import ProcessPoolExecutor
 def tanimoto_similarity(fp1, fp2):
     # Garantindo que fp1 e fp2 sejam objetos ExplicitBitVect
     if isinstance(fp1, np.ndarray):
-        # Convertendo o NumPy array para string de bits
+        # Convertendo o NumPy array para string de bits e depois para ExplicitBitVect
         fp1_bits = ''.join(map(str, fp1.tolist()))
-        fp1 = DataStructs.ExplicitBitVect.FromBitString(fp1_bits)
+        fp1 = DataStructs.ExplicitBitVect(len(fp1_bits))
+        for i, bit in enumerate(fp1_bits):
+            if bit == '1':
+                fp1.SetBit(i)
 
     if isinstance(fp2, np.ndarray):
-        # Convertendo o NumPy array para string de bits
+        # Convertendo o NumPy array para string de bits e depois para ExplicitBitVect
         fp2_bits = ''.join(map(str, fp2.tolist()))
-        fp2 = DataStructs.ExplicitBitVect.FromBitString(fp2_bits)
+        fp2 = DataStructs.ExplicitBitVect(len(fp2_bits))
+        for i, bit in enumerate(fp2_bits):
+            if bit == '1':
+                fp2.SetBit(i)
 
     return DataStructs.FingerprintSimilarity(fp1, fp2, metric=DataStructs.TanimotoSimilarity)
+
 
 class TSNEClusterer:
     def __init__(self, data_path, pkidb_path):
