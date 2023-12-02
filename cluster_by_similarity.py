@@ -15,6 +15,7 @@ def tanimoto_similarity(fp1, fp2):
     return DataStructs.FingerprintSimilarity(fp1, fp2, metric=DataStructs.TanimotoSimilarity)
 
 
+
 class TSNEClusterer:
     def __init__(self, data_path, pkidb_path):
         self.data_path = data_path
@@ -43,10 +44,13 @@ class TSNEClusterer:
         
     def calculate_similarity_matrix(self):
         valid_fingerprints = [fp for fp in self.pkidb_data['fingerprint'] if fp is not None]
-        if len(valid_fingerprints) < 2:
-            print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
-            return None
     
+        # Converter as strings de bits de volta para fingerprints do RDKit
+        valid_fps = [DataStructs.ExplicitBitVect(fp) for fp in valid_fingerprints]
+    
+        similarity_matrix = pdist(valid_fps, lambda u, v: 1 - tanimoto_similarity(u, v))
+        return squareform(similarity_matrix)
+
         similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
         return squareform(similarity_matrix)
 
