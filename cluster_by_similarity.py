@@ -232,10 +232,10 @@ class TSNEClusterer:
                 print("Nenhum resultado do t-SNE para plotar.")
                 return
 
-            # Preparar e plotar os resultados do t-SNE
-            self.plot_tsne()
-        else:
-            print("Não foi possível calcular a matriz de similaridade.")
+                # Preparar e plotar os resultados do t-SNE
+                self.plot_tsne()
+            else:
+                print("Não foi possível calcular a matriz de similaridade.")
 
 
 
