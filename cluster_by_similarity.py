@@ -32,7 +32,7 @@ class TSNEClusterer:
         try:
             mol = Chem.MolFromSmiles(smiles)
             if mol:
-                return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
+                return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2).ToBitString()  # Convertendo para BitString
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
