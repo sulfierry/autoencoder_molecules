@@ -89,6 +89,13 @@ class TSNEClusterer:
             plt.xlabel('Similaridade de Tanimoto')
             plt.ylabel('Frequência')
             plt.show()
+
+            # Visualize o dendrograma
+            plt.figure(figsize=(10, 7))
+            plt.title("Dendrograma dos Clusters")
+            dendrogram(linkage(similarity_matrix, method='ward'))
+            plt.show()
+        return similarity_matrix
         
         return similarity_matrix
 
@@ -100,12 +107,12 @@ class TSNEClusterer:
         print(f'Resultados do t-SNE após a normalização: {self.tsne_results[:5]}')
         print(f'Resultados do t-SNE normalizados.')
         
-    def cluster_molecules(self, condensed_similarity_matrix, threshold=0.5):  # Ajuste o valor do limiar
+    def cluster_molecules(self, condensed_similarity_matrix, threshold=0.2):  # Ajuste o valor do limiar
         print(f'Agrupando com base na matriz de similaridade condensada com limiar {threshold}...')
-        linked = linkage(condensed_similarity_matrix, method='average')  # Tente diferentes métodos de ligação
+        linked = linkage(condensed_similarity_matrix, method='ward')  # Experimente com diferentes métodos
         clusters = fcluster(linked, t=threshold, criterion='distance')
         print(f'Clusters formados: {np.unique(clusters)}')
-        print(f'Contagem por cluster: {np.bincount(clusters)[1:]}')  # O índice 0 é ignorado pois não há cluster 0
+        print(f'Contagem por cluster: {np.bincount(clusters)[1:]}')
         return clusters
         
     def calculate_tsne(self):
