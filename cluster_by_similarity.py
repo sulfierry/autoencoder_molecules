@@ -12,10 +12,6 @@ from scipy.spatial.distance import pdist, squareform
 from concurrent.futures import ProcessPoolExecutor
 from sklearn.preprocessing import MinMaxScaler
 
-def normalize_tsne_results(self):
-    scaler = MinMaxScaler(feature_range=(-1, 1))
-    self.tsne_results = scaler.fit_transform(self.tsne_results)
-    print(f'Resultados do t-SNE normalizados.')
 
 def tanimoto_similarity(fp1, fp2):
     # Garantindo que fp1 e fp2 sejam objetos ExplicitBitVect
@@ -82,6 +78,11 @@ class TSNEClusterer:
         similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
         print(f'Matriz de similaridade calculada com tamanho: {similarity_matrix.size}.')
         return similarity_matrix
+    
+    def normalize_tsne_results(self):
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        self.tsne_results = scaler.fit_transform(self.tsne_results)
+        print(f'Resultados do t-SNE normalizados.')
         
     def cluster_molecules(self, condensed_similarity_matrix, threshold=0.8):
         print(f'Agrupando com base na matriz de similaridade condensada...')
