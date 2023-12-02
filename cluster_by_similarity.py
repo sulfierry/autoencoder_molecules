@@ -40,10 +40,12 @@ class TSNEClusterer:
         self.pkidb_data = None
         self.tsne_results = []
         self.group_labels = []
-
+    
     def load_data(self):
         self.data = pd.read_csv(self.data_path, sep='\t')
         self.pkidb_data = pd.read_csv(self.pkidb_path, sep='\t', usecols=['Canonical_Smiles'])
+        print(f'Dados carregados: {self.data.shape[0]} linhas de "data", {self.pkidb_data.shape[0]} linhas de "pkidb_data".')
+
         
     def smiles_to_fingerprint(self, smiles):
         try:
@@ -55,28 +57,33 @@ class TSNEClusterer:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
 
-
+    
     def preprocess_data(self):
         self.pkidb_data['fingerprint'] = self.pkidb_data['Canonical_Smiles'].apply(self.smiles_to_fingerprint)
+        failed_conversions = self.pkidb_data['fingerprint'].isnull().sum()
+        print(f'Fingerprints convertidos com {failed_conversions} falhas.')
         self.pkidb_data.dropna(subset=['fingerprint'], inplace=True)
+
         
     def calculate_similarity_matrix(self):
         valid_fingerprints = [fp for fp in self.pkidb_data['fingerprint'] if fp is not None]
+        print(f'Calculando matriz de similaridade para {len(valid_fingerprints)} fingerprints válidos...')
         if len(valid_fingerprints) < 2:
             print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
             return None
     
-        # Calculando a matriz de similaridade usando os fingerprints do RDKit
+        # Retorna a matriz de distância condensada diretamente
         similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
-        return squareform(similarity_matrix)
-
-
-
-
-    def cluster_molecules(self, similarity_matrix, threshold=0.8):
-        linked = linkage(similarity_matrix, 'single')
+        print(f'Matriz de similaridade calculada com tamanho: {similarity_matrix.size}.')
+        return similarity_matrix
+        
+    def cluster_molecules(self, condensed_similarity_matrix, threshold=0.8):
+        print(f'Agrupando com base na matriz de similaridade condensada...')
+        linked = linkage(condensed_similarity_matrix, 'single')
         clusters = fcluster(linked, t=threshold, criterion='distance')
+        print(f'{len(np.unique(clusters))} clusters formados.')
         return clusters
+
 
     def calculate_tsne(self):
         similarity_matrix = self.calculate_similarity_matrix()
@@ -106,11 +113,13 @@ class TSNEClusterer:
             tsne_result = tsne.fit_transform(fingerprints_matrix)
             return tsne_result, cluster_id
         return [], cluster_id
-
+    
     def plot_tsne(self):
         tsne_df = pd.DataFrame(self.tsne_results, columns=['x', 'y'])
         tsne_df['cluster'] = self.group_labels
-
+        print(f'Plotando resultados do t-SNE para {tsne_df.shape[0]} pontos.')
+        print(tsne_df.head())  # Mostra as primeiras linhas do DataFrame para inspeção
+    
         plt.figure(figsize=(12, 8))
         plt.scatter(tsne_df['x'], tsne_df['y'], c=tsne_df['cluster'], cmap='viridis', alpha=0.5)
         plt.colorbar()
