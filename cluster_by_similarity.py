@@ -7,7 +7,7 @@ from rdkit import DataStructs
 import concurrent.futures
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.cluster.hierarchy import fcluster, linkage, dendrogram
 from scipy.spatial.distance import pdist, squareform
 from concurrent.futures import ProcessPoolExecutor
 from sklearn.preprocessing import MinMaxScaler
@@ -191,7 +191,6 @@ class TSNEClusterer:
         plt.show()
 
 
-
     def run(self):
         self.load_data()
         self.preprocess_data()
@@ -199,37 +198,42 @@ class TSNEClusterer:
         # Calcular matriz de similaridade e plotar dendrograma
         similarity_matrix = self.calculate_similarity_matrix()
 
-        # Escolher um valor de corte baseado na visualização do dendrograma
-        cutoff = 1.5  # Ajuste este valor conforme observado no dendrograma
-        clusters = fcluster(linkage(similarity_matrix, method='ward'), cutoff, criterion='distance')
+        if similarity_matrix is not None:
+            # Escolher um valor de corte baseado na visualização do dendrograma
+            cutoff = 1.5  # Ajuste este valor conforme observado no dendrograma
+            clusters = fcluster(linkage(similarity_matrix, method='ward'), cutoff, criterion='distance')
+            self.pkidb_data['cluster'] = clusters  # Certifique-se de atribuir os clusters ao DataFrame aqui
 
-        # Verifique se o número de clusters é maior que 1 para prosseguir com o t-SNE
-        if len(np.unique(clusters)) <= 1:
-            print("Número insuficiente de clusters para calcular t-SNE.")
-            return
+            # Verifique se o número de clusters é maior que 1 para prosseguir com o t-SNE
+            if len(np.unique(clusters)) <= 1:
+                print("Número insuficiente de clusters para calcular t-SNE.")
+                return
 
-        # Processamento paralelo para cálculo do t-SNE
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            futures = []
-            for cluster_id in np.unique(clusters):
-                cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
-                fingerprints = list(cluster_data['fingerprint'])
-                if fingerprints:  # Verifique se a lista de fingerprints não está vazia
-                    futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
+            # Processamento paralelo para cálculo do t-SNE
+            with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+                futures = []
+                for cluster_id in np.unique(clusters):
+                    cluster_data = self.pkidb_data[self.pkidb_data['cluster'] == cluster_id]
+                    fingerprints = list(cluster_data['fingerprint'])
+                    if fingerprints:  # Verifique se a lista de fingerprints não está vazia
+                        futures.append(executor.submit(self.calculate_tsne_for_fingerprints, fingerprints, cluster_id))
 
-            for future in concurrent.futures.as_completed(futures):
-                result, cluster_id = future.result()
-                if result:  # Verifique se o resultado não está vazio
-                    self.tsne_results.extend(result)
-                    self.group_labels.extend([cluster_id] * len(result))
+                for future in concurrent.futures.as_completed(futures):
+                    result, cluster_id = future.result()
+                    if result:  # Verifique se o resultado não está vazio
+                        self.tsne_results.extend(result)
+                        self.group_labels.extend([cluster_id] * len(result))
 
-        # Verifique se os resultados do t-SNE não estão vazios antes de plotar
-        if not self.tsne_results:
-            print("Nenhum resultado do t-SNE para plotar.")
-            return
+            # Verifique se os resultados do t-SNE não estão vazios antes de plotar
+            if not self.tsne_results:
+                print("Nenhum resultado do t-SNE para plotar.")
+                return
 
-        # Preparar e plotar os resultados do t-SNE
-        self.plot_tsne()
+            # Preparar e plotar os resultados do t-SNE
+            self.plot_tsne()
+        else:
+            print("Não foi possível calcular a matriz de similaridade.")
+
 
 
 def main():
