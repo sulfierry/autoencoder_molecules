@@ -27,26 +27,29 @@ class TSNEClusterer:
     def load_data(self):
         self.data = pd.read_csv(self.data_path, sep='\t')
         self.pkidb_data = pd.read_csv(self.pkidb_path, sep='\t', usecols=['Canonical_Smiles'])
-
+            
     def smiles_to_fingerprint(self, smiles):
         try:
             mol = Chem.MolFromSmiles(smiles)
-            return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
+            if mol:
+                return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
         return None
-        
+
     def preprocess_data(self):
         self.pkidb_data['fingerprint'] = self.pkidb_data['Canonical_Smiles'].apply(self.smiles_to_fingerprint)
         self.pkidb_data.dropna(subset=['fingerprint'], inplace=True)
-
-    def calculate_similarity_matrix(self):
-        # Filtrar dados para garantir que todos os fingerprints são válidos
-        valid_fingerprints = self.pkidb_data['fingerprint'].dropna()
         
-        # Calcular a matriz de similaridade somente com fingerprints válidos
-        similarity_matrix = pdist(valid_fingerprints.tolist(), lambda u, v: 1 - tanimoto_similarity(u, v))
+    def calculate_similarity_matrix(self):
+        valid_fingerprints = [fp for fp in self.pkidb_data['fingerprint'] if fp is not None]
+        if len(valid_fingerprints) < 2:
+            print("Não há fingerprints suficientes para calcular a matriz de similaridade.")
+            return None
+    
+        similarity_matrix = pdist(valid_fingerprints, lambda u, v: 1 - tanimoto_similarity(u, v))
         return squareform(similarity_matrix)
+
 
     def cluster_molecules(self, similarity_matrix, threshold=0.8):
         linked = linkage(similarity_matrix, 'single')
@@ -55,6 +58,10 @@ class TSNEClusterer:
 
     def calculate_tsne(self):
         similarity_matrix = self.calculate_similarity_matrix()
+
+        if similarity_matrix is None:
+            return  # Encerrar a função se a matriz de similaridade não puder ser calculada
+
         self.pkidb_data['cluster'] = self.cluster_molecules(similarity_matrix)
 
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
