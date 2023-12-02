@@ -53,7 +53,6 @@ class TSNEClusterer:
         try:
             mol = Chem.MolFromSmiles(smiles)
             if mol:
-                # Retornando diretamente o ExplicitBitVect, sem convertê-lo para uma string
                 return AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
         except Exception as e:
             print(f"Erro ao converter SMILES: {smiles} - {e}")
