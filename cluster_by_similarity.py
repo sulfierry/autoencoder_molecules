@@ -11,6 +11,7 @@ from tqdm import tqdm
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from sklearn.svm import SVC
 
 
 class MoleculeClusterer:
@@ -19,8 +20,37 @@ class MoleculeClusterer:
         self.data = None
         self.fingerprints = []
 
+
     def load_data(self):
-        self.data = pd.read_csv(self.smiles_file_path, sep='\t', usecols=['canonical_smiles'])
+        # Correção aqui: usar 'smiles_file_path' em vez de 'data_path'
+        self.data = pd.read_csv(self.smiles_file_path, sep='\t')
+        if 'pchembl_value' not in self.data.columns:
+            raise ValueError("A coluna 'pchembl_value' não foi encontrada no arquivo.")
+
+        
+    def preprocess_data(self):
+        # Classifica os valores de pchembl em grupos
+        self.data['pchembl_group'] = self.data['pchembl_value'].apply(self.pchembl_group)
+
+    @staticmethod
+    def pchembl_group(value):
+        # Lógica para classificar o valor pchembl em grupos
+        if pd.isna(value):
+            return 'sem_pchembl'
+        elif 1 < value < 8:
+            return 'grupo1'
+        elif 8 <= value < 9:
+            return 'grupo2'
+        elif 9 <= value < 10:
+            return 'grupo3'
+        elif 10 <= value < 11:
+            return 'grupo4'
+        elif 11 <= value < 12:
+            return 'grupo5'
+        else:
+            return '>12'
+
+
 
     @staticmethod
     def smiles_to_fingerprint(smiles):
@@ -138,10 +168,12 @@ class MoleculeClusterer:
 
 
 def main():
+    # Caminhos dos arquivos
     smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     output_file_path = './clustered_smiles.tsv'
     state_file_path = './molecule_clusterer_state.pkl'
 
+    # Instanciar a classe MoleculeClusterer
     clusterer = MoleculeClusterer(smiles_file_path)
 
     # Tentar carregar o estado salvo anteriormente
@@ -151,25 +183,26 @@ def main():
     except FileNotFoundError:
         print("Nenhum estado salvo encontrado. Iniciando processamento do zero.")
         clusterer.load_data()
-        
-        # Verificar se a coluna 'pchembl_value' existe
-        if 'pchembl_value' in clusterer.data.columns:
-            clusterer.data['pchembl_value'].fillna(0, inplace=True)  # Exemplo de tratamento simples
-        else:
-            print("A coluna 'pchembl_value' não existe no dataset.")
-            return  # Encerrar o script se a coluna necessária não estiver presente
-
+        clusterer.preprocess_data()
         clusterer.parallel_generate_fingerprints()
+        # Salvar o estado após gerar os fingerprints
+        clusterer.save_state(state_file_path)
     except Exception as e:
         print("Erro ao carregar o estado: ", e)
-        return  # Encerrar o script em caso de outro tipo de erro ao carregar o estado
+        return  # Encerrar o script em caso de erro ao carregar o estado
 
+
+    # Realizar cálculos de similaridade e clustering
     if clusterer.fingerprints:
-        # Gerar e visualizar a matriz de similaridade de Tanimoto
-        clusterer.generate_2d_visualization(threshold=0.8)
-        clusterer.save_clustered_data(output_file_path)
+        similarity_matrix = clusterer.calculate_similarity_matrix()
+        combined_matrix = clusterer.combine_similarity_matrices(similarity_matrix)
+        clusterer.cluster_molecules(combined_matrix)
         
-        # Salvar o estado atual
+        # Visualização dos resultados
+        clusterer.generate_2d_visualization()
+        clusterer.save_clustered_data(output_file_path)
+
+        # Salvar o estado final
         clusterer.save_state(state_file_path)
 
     else:
