@@ -118,6 +118,8 @@ class MoleculeClusterer:
 def main():
     smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     output_file_path = './clustered_smiles.tsv'
+    state_file_path = './molecule_clusterer_state.pkl'
+
 
     clusterer = MoleculeClusterer(smiles_file_path)
     # Tentar carregar o estado salvo anteriormente
