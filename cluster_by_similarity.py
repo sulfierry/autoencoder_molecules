@@ -83,13 +83,22 @@ class MoleculeClusterer:
         tsne = TSNE(n_components=2, random_state=42)
         tsne_results = tsne.fit_transform(embeddings)
 
-        # Plotagem
+        # Definindo o número de clusters
+        n_clusters = 5  # Este valor pode ser ajustado conforme necessário
+
+        # Aplicar k-means nos resultados do t-SNE
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        cluster_labels = kmeans.fit_predict(tsne_results)
+
+        # Plotagem com cores para cada cluster
         plt.figure(figsize=(12, 10))
-        plt.scatter(tsne_results[:, 0], tsne_results[:, 1], alpha=0.7)
-        plt.title('Visualização 2D de Similaridade Molecular (Tanimoto >= 0.8)')
+        plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=cluster_labels, alpha=0.7, cmap='viridis')
+        plt.title('Visualização 2D de Similaridade Molecular com Clusters (Tanimoto >= 0.8)')
         plt.xlabel('t-SNE Dimensão 1')
         plt.ylabel('t-SNE Dimensão 2')
+        plt.colorbar(label='Cluster ID')
         plt.show()
+
 
 
 def main():
