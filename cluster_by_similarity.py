@@ -143,26 +143,29 @@ def main():
     output_file_path = './clustered_smiles.tsv'
     state_file_path = './molecule_clusterer_state.pkl'
 
-
     clusterer = MoleculeClusterer(smiles_file_path)
+
     # Tentar carregar o estado salvo anteriormente
     try:
         clusterer.load_state(state_file_path)
         print("Estado carregado com sucesso.")
-    except (FileNotFoundError, EOFError, pickle.UnpicklingError):
-        print("Nenhum estado salvo encontrado ou erro ao carregar o estado. Iniciando processamento do zero.")
+    except FileNotFoundError:
+        print("Nenhum estado salvo encontrado. Iniciando processamento do zero.")
         clusterer.load_data()
-        # Tratamento de dados faltantes ou inválidos em pchembl_value, se necessário
-        clusterer.data['pchembl_value'].fillna(0, inplace=True)  # Exemplo de tratamento simples
+        
+        # Verificar se a coluna 'pchembl_value' existe
+        if 'pchembl_value' in clusterer.data.columns:
+            clusterer.data['pchembl_value'].fillna(0, inplace=True)  # Exemplo de tratamento simples
+        else:
+            print("A coluna 'pchembl_value' não existe no dataset.")
+            return  # Encerrar o script se a coluna necessária não estiver presente
+
         clusterer.parallel_generate_fingerprints()
+    except Exception as e:
+        print("Erro ao carregar o estado: ", e)
+        return  # Encerrar o script em caso de outro tipo de erro ao carregar o estado
 
     if clusterer.fingerprints:
-        # Treinar e usar o classificador SVM
-        clusterer.train_svm_classifier()
-        predicted_labels = clusterer.predict_svm()
-
-        # Aqui você pode adicionar lógica para usar os rótulos previstos, se necessário
-
         # Gerar e visualizar a matriz de similaridade de Tanimoto
         clusterer.generate_2d_visualization(threshold=0.8)
         clusterer.save_clustered_data(output_file_path)
