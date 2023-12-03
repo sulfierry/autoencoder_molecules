@@ -115,6 +115,29 @@ class MoleculeClusterer:
             self.data = state['data']
             self.fingerprints = state['fingerprints']
 
+    def generate_labels(self, threshold=7.0):
+        """
+        Gera rótulos binários com base em um limiar de pchembl_value.
+        :param threshold: Limiar para classificar os valores pchembl como alto ou baixo.
+        :return: Lista de rótulos binários.
+        """
+        labels = [1 if value >= threshold else 0 for value in self.data['pchembl_value']]
+        return labels
+
+    def train_svm_classifier(self, kernel_type='rbf', C=1.0, gamma='scale'):
+        """
+        Treina um classificador SVM com rótulos baseados em pchembl_value.
+        :param kernel_type: Tipo do kernel do SVM ('linear', 'poly', 'rbf', etc.).
+        :param C: Parâmetro de regularização do SVM.
+        :param gamma: Coeficiente do kernel para 'rbf', 'poly' e 'sigmoid'.
+        """
+        labels = self.generate_labels()
+        self.svm_classifier = SVC(kernel=kernel_type, C=C, gamma=gamma)
+        fp_array = np.array([list(fp) for fp in self.fingerprints])
+        self.svm_classifier.fit(fp_array, labels)
+
+
+
 def main():
     smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     output_file_path = './clustered_smiles.tsv'
@@ -129,21 +152,27 @@ def main():
     except (FileNotFoundError, EOFError, pickle.UnpicklingError):
         print("Nenhum estado salvo encontrado ou erro ao carregar o estado. Iniciando processamento do zero.")
         clusterer.load_data()
+        # Tratamento de dados faltantes ou inválidos em pchembl_value, se necessário
+        clusterer.data['pchembl_value'].fillna(0, inplace=True)  # Exemplo de tratamento simples
         clusterer.parallel_generate_fingerprints()
 
     if clusterer.fingerprints:
+        # Treinar e usar o classificador SVM
+        clusterer.train_svm_classifier()
+        predicted_labels = clusterer.predict_svm()
+
+        # Aqui você pode adicionar lógica para usar os rótulos previstos, se necessário
+
         # Gerar e visualizar a matriz de similaridade de Tanimoto
         clusterer.generate_2d_visualization(threshold=0.8)
-        
-        # Aqui, você pode adicionar a lógica de agrupamento, se necessário
-        # tanimoto_matrix = clusterer.calculate_similarity_matrix()
-        # clusterer.cluster_molecules(tanimoto_matrix, threshold=0.8)
         clusterer.save_clustered_data(output_file_path)
         
+        # Salvar o estado atual
+        clusterer.save_state(state_file_path)
+
     else:
         print("Nenhum fingerprint válido foi encontrado.")
 
 if __name__ == "__main__":
     main()
-
 
