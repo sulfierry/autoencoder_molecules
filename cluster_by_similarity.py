@@ -9,6 +9,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
 
 
 class MoleculeClusterer:
@@ -99,15 +100,33 @@ class MoleculeClusterer:
         plt.colorbar(label='Cluster ID')
         plt.show()
 
+    def save_state(self, file_path):
+        state = {
+            'data': self.data,
+            'fingerprints': self.fingerprints
+        }
+        with open(file_path, 'wb') as file:
+            pickle.dump(state, file)
 
+    def load_state(self, file_path):
+        with open(file_path, 'rb') as file:
+            state = pickle.load(file)
+            self.data = state['data']
+            self.fingerprints = state['fingerprints']
 
 def main():
     smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     output_file_path = './clustered_smiles.tsv'
 
     clusterer = MoleculeClusterer(smiles_file_path)
-    clusterer.load_data()
-    clusterer.parallel_generate_fingerprints()
+    # Tentar carregar o estado salvo anteriormente
+    try:
+        clusterer.load_state(state_file_path)
+        print("Estado carregado com sucesso.")
+    except (FileNotFoundError, EOFError, pickle.UnpicklingError):
+        print("Nenhum estado salvo encontrado ou erro ao carregar o estado. Iniciando processamento do zero.")
+        clusterer.load_data()
+        clusterer.parallel_generate_fingerprints()
 
     if clusterer.fingerprints:
         # Gerar e visualizar a matriz de similaridade de Tanimoto
