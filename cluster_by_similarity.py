@@ -137,7 +137,6 @@ class MoleculeClusterer:
         self.svm_classifier.fit(fp_array, labels)
 
 
-
 def main():
     smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     output_file_path = './clustered_smiles.tsv'
@@ -178,4 +177,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
