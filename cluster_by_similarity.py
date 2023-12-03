@@ -58,9 +58,39 @@ class MoleculeClusterer:
     def save_clustered_data(self, output_file_path):
         self.data.to_csv(output_file_path, sep='\t', index=False)
 
+    def generate_2d_visualization(self, threshold=0.8):
+        num_fps = len(self.fingerprints)
+        high_similarity_pairs = []
+
+        for i in tqdm(range(num_fps)):
+            for j in range(i + 1, num_fps):
+                similarity = DataStructs.TanimotoSimilarity(self.fingerprints[i], self.fingerprints[j])
+                if similarity >= threshold:
+                    high_similarity_pairs.append((i, j, similarity))
+
+        if not high_similarity_pairs:
+            print("Nenhum par de moléculas com alta similaridade encontrado.")
+            return
+
+        # Preparando os dados para t-SNE
+        indices = list(set([i for i, j, s in high_similarity_pairs] + [j for i, j, s in high_similarity_pairs]))
+        embeddings = [self.fingerprints[i] for i in indices]
+        embeddings = np.array([list(fp) for fp in embeddings])
+
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        # Plotagem
+        plt.figure(figsize=(12, 10))
+        plt.scatter(tsne_results[:, 0], tsne_results[:, 1], alpha=0.7)
+        plt.title('Visualização 2D de Similaridade Molecular (Tanimoto >= 0.8)')
+        plt.xlabel('t-SNE Dimensão 1')
+        plt.ylabel('t-SNE Dimensão 2')
+        plt.show()
+
 
 def main():
-    smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv.tsv'
+    smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
     output_file_path = './clustered_smiles.tsv'
 
     clusterer = MoleculeClusterer(smiles_file_path)
@@ -68,13 +98,17 @@ def main():
     clusterer.parallel_generate_fingerprints()
 
     if clusterer.fingerprints:
-        tanimoto_matrix = clusterer.calculate_similarity_matrix()
-        cosine_matrix = clusterer.calculate_cosine_distance_matrix()
-        combined_matrix = clusterer.combine_similarity_matrices(tanimoto_matrix, cosine_matrix, alpha=0.5)
-        clusterer.cluster_molecules(combined_matrix, threshold=0.8)
+        # Gerar e visualizar a matriz de similaridade de Tanimoto
+        clusterer.generate_2d_visualization(threshold=0.8)
+        
+        # Aqui, você pode adicionar a lógica de agrupamento, se necessário
+        # tanimoto_matrix = clusterer.calculate_similarity_matrix()
+        # clusterer.cluster_molecules(tanimoto_matrix, threshold=0.8)
         clusterer.save_clustered_data(output_file_path)
+        
     else:
         print("Nenhum fingerprint válido foi encontrado.")
 
 if __name__ == "__main__":
     main()
+
