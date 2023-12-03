@@ -166,6 +166,40 @@ class MoleculeClusterer:
         fp_array = np.array([list(fp) for fp in self.fingerprints])
         self.svm_classifier.fit(fp_array, labels)
 
+    def calculate_tsne(self):
+        # Convertendo a lista de fingerprints para um array NumPy com uma barra de progresso do tqdm
+        fingerprint_array = np.array([fp for fp in tqdm(self.fingerprints, desc='Processing Fingerprints') if fp is not None])
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(fingerprint_array)
+        return tsne_results
+
+
+    def plot_tsne(self, tsne_results, group_labels):
+        plt.figure(figsize=(12, 8))
+
+        # Cores e ordem de plotagem baseada nos grupos pchembl
+        group_to_color = {
+            'sem_pchembl': 'grey',
+            'grupo1': 'blue',
+            'grupo2': 'green',
+            'grupo3': 'yellow',
+            'grupo4': 'orange',
+            'grupo5': 'purple',
+            '>12': 'red'
+        }
+
+        for group, color in group_to_color.items():
+            # Filtrar os resultados do t-SNE pelo grupo atual
+            indices = [i for i, g in enumerate(group_labels) if g == group]
+            subset = tsne_results[indices, :]
+            plt.scatter(subset[:, 0], subset[:, 1], color=color, label=group, alpha=0.5)
+
+        plt.legend()
+        plt.title('Visualização 2D de Similaridade Molecular com Clusters')
+        plt.xlabel('t-SNE Dimensão 1')
+        plt.ylabel('t-SNE Dimensão 2')
+        plt.show()
+
 
 def main():
     # Caminhos dos arquivos
@@ -185,21 +219,26 @@ def main():
         clusterer.load_data()
         clusterer.preprocess_data()
         clusterer.parallel_generate_fingerprints()
-        # Salvar o estado após gerar os fingerprints
         clusterer.save_state(state_file_path)
     except Exception as e:
-        print("Erro ao carregar o estado: ", e)
-        return  # Encerrar o script em caso de erro ao carregar o estado
+        print(f"Erro ao carregar o estado: {e}")
+        return
 
-
-    # Realizar cálculos de similaridade e clustering
+    # Realizar cálculos de similaridade e visualização com base nos grupos de pchembl_value
     if clusterer.fingerprints:
-        similarity_matrix = clusterer.calculate_similarity_matrix()
-        combined_matrix = clusterer.combine_similarity_matrices(similarity_matrix)
-        clusterer.cluster_molecules(combined_matrix)
+        # Similarity matrix calculation
+        # similarity_matrix = clusterer.calculate_similarity_matrix()
         
-        # Visualização dos resultados
-        clusterer.generate_2d_visualization()
+        # TSNE calculation
+        tsne_results = clusterer.calculate_tsne()
+
+        # Get group labels for plotting (ensure this matches with the tsne_results)
+        group_labels = clusterer.data['pchembl_group'].values
+
+        # Visualização dos resultados com cores baseadas nos grupos pchembl
+        clusterer.plot_tsne(tsne_results, group_labels)
+        
+        # Salvar os dados clusterizados
         clusterer.save_clustered_data(output_file_path)
 
         # Salvar o estado final
