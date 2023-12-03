@@ -7,6 +7,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 from multiprocessing import Pool
 from tqdm import tqdm
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+
 
 class MoleculeClusterer:
     def __init__(self, smiles_file_path):
@@ -111,4 +114,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
