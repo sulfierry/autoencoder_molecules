@@ -18,15 +18,10 @@ class MoleculeClusterer:
         self.data = None
         self.fingerprints = []
 
-    def load_data(self):
+    def load_data(self, smile_column):
         # Correção aqui: usar 'smiles_file_path' em vez de 'data_path'
         self.data = pd.read_csv(self.smiles_file_path, sep='\t')
-        if 'pchembl_value' not in self.data.columns:
-            raise ValueError("A coluna 'pchembl_value' não foi encontrada no arquivo.")
-
-    def preprocess_data(self):
-        # Classifica os valores de pchembl em grupos
-        self.data['pchembl_group'] = self.data['pchembl_value'].apply(self.pchembl_group)
+        self.data = self.data.dropna(subset=[smile_column])
     
     def cluster_by_similarity(self, threshold=0.8):
         num_fps = len(self.fingerprints)
@@ -47,22 +42,6 @@ class MoleculeClusterer:
             clusters.append(cluster)
 
         return clusters
-    
-    @staticmethod
-    def pchembl_group(value):
-        # Lógica para classificar o valor pchembl em grupos
-        if pd.isna(value):
-            return 'sem_pchembl'
-        elif 1 < value < 9:
-            return 'grupo1'
-        elif 9 <= value < 10:
-            return 'grupo2'
-        elif 10 <= value < 11:
-            return 'grupo3'
-        elif 11 <= value < 12:
-            return 'grupo4'
-        else:
-            return '>12'
 
     @staticmethod
     def smiles_to_fingerprint(smiles):
@@ -73,10 +52,10 @@ class MoleculeClusterer:
     def compute_fingerprint(smiles):
         return MoleculeClusterer.smiles_to_fingerprint(smiles)
 
-    def parallel_generate_fingerprints(self):
+    def parallel_generate_fingerprints(self, smile_column):
         num_cpus = os.cpu_count()
         with Pool(num_cpus) as pool:
-            self.fingerprints = list(tqdm(pool.imap(self.compute_fingerprint, self.data['canonical_smiles']), total=len(self.data)))
+            self.fingerprints = list(tqdm(pool.imap(self.compute_fingerprint, self.data[smile_column]), total=len(self.data)))
         self.fingerprints = [fp for fp in self.fingerprints if fp is not None]
 
     def save_clustered_data(self, output_file_path):
@@ -105,7 +84,7 @@ class MoleculeClusterer:
         return tsne_results
 
 
-    def plot_tsne(self, tsne_results, threshold=3):
+    def plot_tsne(self, tsne_results, threshold):
         plt.figure(figsize=(12, 8))
 
         # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
@@ -135,7 +114,7 @@ class MoleculeClusterer:
         plt.show()
         
         
-    def plot_cluster_size_distribution(self, threshold=3):
+    def plot_cluster_size_distribution(self, threshold):
         # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
         cluster_sizes = self.data['ClusterID'].value_counts()
         filtered_cluster_sizes = cluster_sizes[cluster_sizes >= threshold]
@@ -152,7 +131,7 @@ class MoleculeClusterer:
         plt.show()
 
 
-    def save_clusters_as_tsv(self, threshold=3):
+    def save_clusters_as_tsv(self, threshold, smile_column):
         # Criar pasta 'clusters' se não existir
         os.makedirs('./clusters', exist_ok=True)
 
@@ -161,7 +140,7 @@ class MoleculeClusterer:
                         'nome_medicamento', 'ClusterID']
 
         # Calcula o peso molecular para cada SMILES e adiciona como uma nova coluna
-        self.data['molecular_weight'] = self.data['canonical_smiles'].apply(lambda x: Descriptors.MolWt(Chem.MolFromSmiles(x)) if x else None)
+        self.data['molecular_weight'] = self.data[smile_column].apply(lambda x: Descriptors.MolWt(Chem.MolFromSmiles(x)) if x else None)
 
         for cluster_id in set(self.data['ClusterID']):
             cluster_data = self.data[self.data['ClusterID'] == cluster_id]
@@ -176,11 +155,8 @@ class MoleculeClusterer:
                 cluster_data_to_save.to_csv(f'./clusters/cluster_{cluster_id}.tsv', sep='\t', index=False)
 
 
-def main():
-    smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
-    output_file_path = './clustered_smiles.tsv'
-    state_file_path = './molecule_clusterer_state.pkl'
-
+def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold, cluster_size_threshold, smile_column):
+    
     clusterer = MoleculeClusterer(smiles_file_path)
 
     try:
@@ -188,9 +164,8 @@ def main():
         print("Estado carregado com sucesso.")
     except FileNotFoundError:
         print("Nenhum estado salvo encontrado. Iniciando processamento do zero.")
-        clusterer.load_data()
-        clusterer.preprocess_data()
-        clusterer.parallel_generate_fingerprints()
+        clusterer.load_data(smile_column)
+        clusterer.parallel_generate_fingerprints(smile_column)
         clusterer.save_state(state_file_path)
     except Exception as e:
         print(f"Erro ao carregar o estado: {e}")
@@ -198,7 +173,7 @@ def main():
 
     if clusterer.fingerprints:
         tsne_results = clusterer.calculate_tsne()
-        clusters = clusterer.cluster_by_similarity(threshold=0.8)
+        clusters = clusterer.cluster_by_similarity(threshold=tanimoto_threshold)
 
         cluster_ids = [None] * len(clusterer.data)
         for cluster_id, cluster in enumerate(clusters):
@@ -206,10 +181,10 @@ def main():
                 cluster_ids[idx] = cluster_id
         clusterer.data['ClusterID'] = cluster_ids
 
-        clusterer.save_clusters_as_tsv(threshold=5)  # Mover esta linha para cá
+        clusterer.save_clusters_as_tsv(cluster_size_threshold, smile_column)  # Move this line here
 
-        clusterer.plot_tsne(tsne_results)
-        clusterer.plot_cluster_size_distribution()
+        clusterer.plot_tsne(tsne_results, cluster_size_threshold)
+        clusterer.plot_cluster_size_distribution(cluster_size_threshold)
 
         clusterer.save_clustered_data(output_file_path)
         clusterer.save_state(state_file_path)
@@ -217,5 +192,17 @@ def main():
         print("Nenhum fingerprint válido foi encontrado.")
 
 
+
+def main():
+    smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
+    output_file_path = './clustered_smiles.tsv'
+    state_file_path = './molecule_clusterer_state.pkl'
+
+    smile_column = 'canonical_smiles'
+    tanimoto_threshold = 0.8
+    cluster_size_threshold = 3
+    
+    run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold, cluster_size_threshold, smile_column)
+    
 if __name__ == "__main__":
     main()
