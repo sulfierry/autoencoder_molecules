@@ -131,13 +131,16 @@ class MoleculeClusterer:
         plt.show()
 
 
-    def save_clusters_as_tsv(self, threshold, smile_column):
+    def save_clusters_as_tsv(self, threshold, smile_column, cluster_hits_file):
         # Criar pasta 'clusters' se não existir
         os.makedirs('./clusters', exist_ok=True)
 
-        # Colunas a serem incluídas no arquivo de saída
+        # Colunas a serem incluídas nos arquivos de saída
         output_columns = ['molregno', 'kinase_alvo', 'canonical_smiles', 'standard_value', 'standard_type', 'pchembl_value',
-                        'nome_medicamento', 'ClusterID']
+                        'nome_medicamento', 'molecular_weight', 'ClusterID']
+
+        # Lista para armazenar os hits de cada cluster
+        cluster_hits = []
 
         # Calcula o peso molecular para cada SMILES e adiciona como uma nova coluna
         self.data['molecular_weight'] = self.data[smile_column].apply(lambda x: Descriptors.MolWt(Chem.MolFromSmiles(x)) if x else None)
@@ -153,6 +156,15 @@ class MoleculeClusterer:
                 # Selecionar apenas as colunas desejadas para salvar
                 cluster_data_to_save = cluster_data_sorted[output_columns]
                 cluster_data_to_save.to_csv(f'./clusters/cluster_{cluster_id}.tsv', sep='\t', index=False)
+
+                # Adicionar o hit do cluster (molecule com o menor peso molecular) à lista de hits
+                cluster_hits.append(cluster_data_sorted.iloc[0])
+
+        # Criar DataFrame dos hits dos clusters e salvar
+        cluster_hits_df = pd.DataFrame(cluster_hits, columns=output_columns)
+        cluster_hits_df.to_csv(cluster_hits_file, sep='\t', index=False)
+
+
 
 
 def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold, cluster_size_threshold, smile_column):
@@ -181,8 +193,7 @@ def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold,
                 cluster_ids[idx] = cluster_id
         clusterer.data['ClusterID'] = cluster_ids
 
-        clusterer.save_clusters_as_tsv(cluster_size_threshold, smile_column)  # Move this line here
-
+        clusterer.save_clusters_as_tsv(cluster_size_threshold, smile_column, './cluster_hits.tsv')
         clusterer.plot_tsne(tsne_results, cluster_size_threshold)
         clusterer.plot_cluster_size_distribution(cluster_size_threshold)
 
