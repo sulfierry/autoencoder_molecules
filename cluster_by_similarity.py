@@ -104,58 +104,40 @@ class MoleculeClusterer:
         tsne_results = tsne.fit_transform(fingerprint_array)
         return tsne_results
 
-    def plot_tsne(self, tsne_results):
+    def plot_tsne(self, tsne_results, threshold=2):
         plt.figure(figsize=(12, 8))
 
-        # Certifique-se de que os IDs dos clusters são inteiros
-        cluster_ids = self.data['ClusterID'].astype(int)
+        # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
+        filtered_data = self.data[self.data['ClusterID'].map(self.data['ClusterID'].value_counts()) >= threshold]
+        cluster_ids = filtered_data['ClusterID'].astype(int)
 
-        # Obter o número de clusters únicos
-        num_clusters = len(set(cluster_ids))
-
-        # Criar o mapa de cores
+        # Criar o mapa de cores e plotar
         cmap = plt.cm.viridis
+        scatter = plt.scatter(tsne_results[cluster_ids.index, 0], tsne_results[cluster_ids.index, 1], 
+                            c=cluster_ids, cmap=cmap, alpha=0.5)
 
-        # Obter o tamanho de cada cluster
-        cluster_sizes = self.data['ClusterID'].value_counts().sort_index()
-        
-        # Mapear cada cluster ID para o tamanho do cluster
-        size_map = cluster_sizes.to_dict()
-        cluster_colors = np.array([size_map[x] for x in cluster_ids])
-
-        # Plotagem do TSNE com a coloração do cluster
-        scatter = plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=cluster_colors, cmap=cmap, alpha=0.5)
-
-        # Criar um objeto de barra de cores com um número inteiro de bins
-        cbar = plt.colorbar(scatter, spacing='proportional', ticks=range(cluster_sizes.min(), cluster_sizes.max() + 1))
-        cbar.set_label('Cluster Size')
-
-        plt.title('Visualização 2D de Similaridade Molecular com Clusters')
+        plt.colorbar(scatter)
+        plt.title('Visualização 2D de Similaridade Molecular com Clusters (Filtrado)')
         plt.xlabel('t-SNE Dimensão 1')
         plt.ylabel('t-SNE Dimensão 2')
         plt.show()
+
         
-    def plot_cluster_size_distribution(self):
-        # Contar o número de smiles em cada cluster
+    def plot_cluster_size_distribution(self, threshold=2):
+        # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
         cluster_sizes = self.data['ClusterID'].value_counts()
+        filtered_cluster_sizes = cluster_sizes[cluster_sizes >= threshold]
 
-        # Criar um histograma dos tamanhos dos clusters
         plt.figure(figsize=(10, 6))
-        plt.hist(cluster_sizes, bins=range(1, cluster_sizes.max() + 1), alpha=0.7, color='blue', edgecolor='black')
+        plt.hist(filtered_cluster_sizes, bins=range(threshold, filtered_cluster_sizes.max() + 1), 
+                alpha=0.7, color='blue', edgecolor='black')
 
-        plt.title('Distribuição do Número de Smiles por Cluster')
+        plt.title('Distribuição do Número de Smiles por Cluster (Filtrado)')
         plt.xlabel('Número de Smiles no Cluster')
         plt.ylabel('Contagem de Clusters')
         plt.grid(axis='y', alpha=0.75)
-
-        # Mostrar média e mediana
-        mean_size = cluster_sizes.mean()
-        median_size = cluster_sizes.median()
-        plt.axvline(mean_size, color='red', linestyle='dashed', linewidth=1, label=f'Média: {mean_size:.2f}')
-        plt.axvline(median_size, color='green', linestyle='dashed', linewidth=1, label=f'Mediana: {median_size:.2f}')
-
-        plt.legend()
         plt.show()
+
 
     def save_clusters_as_tsv(self, threshold=5):
         # Criar pasta 'clusters' se não existir
@@ -204,13 +186,14 @@ def main():
     if clusterer.fingerprints:
         tsne_results = clusterer.calculate_tsne()
         clusters = clusterer.cluster_by_similarity(threshold=0.8)
-        clusterer.save_clusters_as_tsv(threshold=5)
 
         cluster_ids = [None] * len(clusterer.data)
         for cluster_id, cluster in enumerate(clusters):
             for idx in cluster:
                 cluster_ids[idx] = cluster_id
         clusterer.data['ClusterID'] = cluster_ids
+
+        clusterer.save_clusters_as_tsv(threshold=5)  # Mover esta linha para cá
 
         clusterer.plot_tsne(tsne_results)
         clusterer.plot_cluster_size_distribution()
@@ -219,6 +202,7 @@ def main():
         clusterer.save_state(state_file_path)
     else:
         print("Nenhum fingerprint válido foi encontrado.")
+
 
 if __name__ == "__main__":
     main()
