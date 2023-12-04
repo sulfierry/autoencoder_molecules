@@ -104,26 +104,38 @@ class MoleculeClusterer:
         tsne_results = tsne.fit_transform(fingerprint_array)
         return tsne_results
 
-    def plot_tsne(self, tsne_results, threshold=2):
+
+    def plot_tsne(self, tsne_results, threshold=3):
         plt.figure(figsize=(12, 8))
 
         # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
         filtered_data = self.data[self.data['ClusterID'].map(self.data['ClusterID'].value_counts()) >= threshold]
-        cluster_ids = filtered_data['ClusterID'].astype(int)
 
-        # Criar o mapa de cores e plotar
+        # Filtrar os resultados t-SNE para incluir apenas os dados filtrados
+        filtered_indices = filtered_data.index
+        filtered_tsne_results = tsne_results[filtered_indices]
+
+        # Obter os tamanhos dos clusters para os dados filtrados
+        cluster_sizes = filtered_data['ClusterID'].map(filtered_data['ClusterID'].value_counts())
+
+        # Mapear os tamanhos dos clusters para um intervalo de cores
         cmap = plt.cm.viridis
-        scatter = plt.scatter(tsne_results[cluster_ids.index, 0], tsne_results[cluster_ids.index, 1], 
-                            c=cluster_ids, cmap=cmap, alpha=0.5)
+        norm = plt.Normalize(cluster_sizes.min(), cluster_sizes.max())
 
-        plt.colorbar(scatter)
+        scatter = plt.scatter(filtered_tsne_results[:, 0], filtered_tsne_results[:, 1], 
+                            c=cluster_sizes, cmap=cmap, norm=norm, alpha=0.5)
+
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Tamanho do Cluster')
+
         plt.title('Visualização 2D de Similaridade Molecular com Clusters (Filtrado)')
         plt.xlabel('t-SNE Dimensão 1')
         plt.ylabel('t-SNE Dimensão 2')
+        plt.savefig('tsne_similarity_0.8.png')
         plt.show()
-
         
-    def plot_cluster_size_distribution(self, threshold=2):
+        
+    def plot_cluster_size_distribution(self, threshold=3):
         # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
         cluster_sizes = self.data['ClusterID'].value_counts()
         filtered_cluster_sizes = cluster_sizes[cluster_sizes >= threshold]
@@ -136,10 +148,11 @@ class MoleculeClusterer:
         plt.xlabel('Número de Smiles no Cluster')
         plt.ylabel('Contagem de Clusters')
         plt.grid(axis='y', alpha=0.75)
+        plt.savefig('cluster_size_distribution.png')
         plt.show()
 
 
-    def save_clusters_as_tsv(self, threshold=5):
+    def save_clusters_as_tsv(self, threshold=3):
         # Criar pasta 'clusters' se não existir
         os.makedirs('./clusters', exist_ok=True)
 
