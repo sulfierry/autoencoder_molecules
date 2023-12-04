@@ -8,7 +8,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
-from matplotlib import colormaps
+# from matplotlib import colormaps
 import matplotlib.cm as cm
 from rdkit.Chem import Descriptors
 
