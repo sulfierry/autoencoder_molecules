@@ -9,7 +9,7 @@ from tqdm import tqdm
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 # from matplotlib import colormaps
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
 from rdkit.Chem import Descriptors
 
 class MoleculeClusterer:
@@ -135,18 +135,28 @@ class MoleculeClusterer:
         # Criar pasta 'clusters' se não existir
         os.makedirs('./clusters', exist_ok=True)
 
+        # Calcula o peso molecular para cada SMILES e adiciona como uma nova coluna
+        self.data['molecular_weight'] = self.data[smile_column].apply(lambda x: Descriptors.MolWt(Chem.MolFromSmiles(x)) if x else None)
+
         # Colunas a serem incluídas nos arquivos de saída
-        output_columns = ['molregno', 'kinase_alvo', 'canonical_smiles', 'standard_value', 'standard_type', 'pchembl_value',
-                        'nome_medicamento', 'molecular_weight', 'ClusterID']
+        output_columns = ['molregno', 'target_kinase', 'canonical_smiles', 'standard_value', 'standard_type', 'pchembl_value',
+                        'compound_name', 'molecular_weight', 'cluster_id']
+        
+        # Certifique-se de renomear as colunas de acordo com os nomes originais no DataFrame
+        rename_columns = {
+            'kinase_alvo': 'target_kinase',  # Substitua 'kinase_alvo' pelo nome original correto se for diferente
+            'nome_medicamento': 'compound_name',  # Substitua 'nome_medicamento' pelo nome original correto se for diferente
+            'ClusterID': 'cluster_id'  # Substitua 'ClusterID' pelo nome original correto se for diferente
+        }
 
         # Lista para armazenar os hits de cada cluster
         cluster_hits = []
 
-        # Calcula o peso molecular para cada SMILES e adiciona como uma nova coluna
-        self.data['molecular_weight'] = self.data[smile_column].apply(lambda x: Descriptors.MolWt(Chem.MolFromSmiles(x)) if x else None)
-
         for cluster_id in set(self.data['ClusterID']):
             cluster_data = self.data[self.data['ClusterID'] == cluster_id]
+
+            # Renomear as colunas conforme necessário
+            cluster_data = cluster_data.rename(columns=rename_columns)
 
             # Ordenar os dados do cluster por peso molecular
             cluster_data_sorted = cluster_data.sort_values('molecular_weight')
@@ -163,8 +173,6 @@ class MoleculeClusterer:
         # Criar DataFrame dos hits dos clusters e salvar
         cluster_hits_df = pd.DataFrame(cluster_hits, columns=output_columns)
         cluster_hits_df.to_csv(cluster_hits_file, sep='\t', index=False)
-
-
 
 
 def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold, cluster_size_threshold, smile_column):
@@ -193,7 +201,7 @@ def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold,
                 cluster_ids[idx] = cluster_id
         clusterer.data['ClusterID'] = cluster_ids
 
-        clusterer.save_clusters_as_tsv(cluster_size_threshold, smile_column, './cluster_hits.tsv')
+        clusterer.save_clusters_as_tsv(cluster_size_threshold, smile_column, './chembl_cluster_hits.tsv')
         clusterer.plot_tsne(tsne_results, cluster_size_threshold)
         clusterer.plot_cluster_size_distribution(cluster_size_threshold)
 
@@ -201,7 +209,6 @@ def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold,
         clusterer.save_state(state_file_path)
     else:
         print("Nenhum fingerprint válido foi encontrado.")
-
 
 
 def main():
