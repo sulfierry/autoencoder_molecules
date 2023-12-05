@@ -1,16 +1,16 @@
-import pickle
-import pandas as pd
-from rdkit import Chem
-from rdkit.Chem import AllChem, DataStructs
-import numpy as np
 import os
-from multiprocessing import Pool
+import pickle
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
-from sklearn.manifold import TSNE
+from rdkit import Chem
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
+from sklearn.manifold import TSNE
+from rdkit.Chem import Descriptors
+from rdkit.Chem import AllChem, DataStructs
 # from matplotlib import colormaps
 # import matplotlib.cm as cm
-from rdkit.Chem import Descriptors
 
 class MoleculeClusterer:
     def __init__(self, smiles_file_path):
@@ -105,11 +105,11 @@ class MoleculeClusterer:
                             c=cluster_sizes, cmap=cmap, norm=norm, alpha=0.5)
 
         cbar = plt.colorbar(scatter)
-        cbar.set_label('Tamanho do Cluster')
+        cbar.set_label('Cluster size')
 
-        plt.title('Visualização 2D de Similaridade Molecular com Clusters (Filtrado)')
-        plt.xlabel('t-SNE Dimensão 1')
-        plt.ylabel('t-SNE Dimensão 2')
+        plt.title('Molecular similarity in 2D space')
+        plt.xlabel('t-SNE feature 1')
+        plt.ylabel('t-SNE feature 2')
         plt.savefig('tsne_similarity_0.8.png')
         plt.show()
         
@@ -123,9 +123,9 @@ class MoleculeClusterer:
         plt.hist(filtered_cluster_sizes, bins=range(threshold, filtered_cluster_sizes.max() + 1), 
                 alpha=0.7, color='blue', edgecolor='black')
 
-        plt.title('Distribuição do Número de Smiles por Cluster (Filtrado)')
-        plt.xlabel('Número de Smiles no Cluster')
-        plt.ylabel('Contagem de Clusters')
+        plt.title('Smiles distribution per cluster')
+        plt.xlabel('Number of smiles per cluster')
+        plt.ylabel('Cluster count')
         plt.grid(axis='y', alpha=0.75)
         plt.savefig('cluster_size_distribution.png')
         plt.show()
@@ -144,9 +144,9 @@ class MoleculeClusterer:
         
         # Certifique-se de renomear as colunas de acordo com os nomes originais no DataFrame
         rename_columns = {
-            'kinase_alvo': 'target_kinase',  # Substitua 'kinase_alvo' pelo nome original correto se for diferente
-            'nome_medicamento': 'compound_name',  # Substitua 'nome_medicamento' pelo nome original correto se for diferente
-            'ClusterID': 'cluster_id'  # Substitua 'ClusterID' pelo nome original correto se for diferente
+            'kinase_alvo': 'target_kinase',  
+            'nome_medicamento': 'compound_name',  
+            'ClusterID': 'cluster_id'  
         }
 
         # Lista para armazenar os hits de cada cluster
