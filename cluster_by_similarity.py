@@ -9,8 +9,6 @@ from multiprocessing import Pool
 from sklearn.manifold import TSNE
 from rdkit.Chem import Descriptors
 from rdkit.Chem import AllChem, DataStructs
-# from matplotlib import colormaps
-# import matplotlib.cm as cm
 
 class MoleculeClusterer:
     def __init__(self, smiles_file_path):
