@@ -140,4 +140,30 @@ distance_metrics = ['hamming', 'manhattan']
 all_similarities = {metric: process_in_batches(valid_fps, batch_size, calculate_similarity, metric) for metric in similarity_metrics}
 all_distances = {metric: process_in_batches(valid_fps, batch_size, calculate_distance, metric) for metric in distance_metrics}
 
+# Inicializar figura para os subplots
+fig, axs = plt.subplots(3, 2, figsize=(13, 13))  # 3 linhas, 2 colunas
+
+# Plotar histogramas das similaridades
+for ax, (metric, values) in zip(axs[:, 0], all_similarities.items()):
+    ax.hist(values, bins=50, color='skyblue', edgecolor='black')
+    ax.set_title(f'Similarity - {metric.capitalize()}', fontsize=10)
+    #ax.set_xlabel('Similaridade')
+    ax.set_ylabel('Frequency')
+
+# Plotar histogramas das distâncias
+for ax, (metric, values) in zip(axs[:, 1], all_distances.items()):
+    ax.hist(values, bins=50, color='salmon', edgecolor='black')
+    ax.set_title(f'Distance - {metric.capitalize()}', fontsize=10)
+    #ax.set_xlabel('Distância')
+    ax.set_ylabel('Frequency')
+
+# Plotar histograma dos valores de pChEMBL no último subplot
+axs[2, 1].hist(data['pchembl_value'].dropna(), bins=20, color='green', edgecolor='black')
+axs[2, 1].set_title('ChEMBL value', fontsize=10)
+#axs[2, 1].set_xlabel('pChEMBL Value')
+axs[2, 1].set_ylabel('Frequency')
+
+plt.tight_layout()
+plt.savefig('histogram_similarity_distance.png')
+plt.show()
 
