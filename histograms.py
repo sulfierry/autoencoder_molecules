@@ -75,3 +75,18 @@ all_distances = {metric: process_in_batches(valid_fps, batch_size, calculate_dis
 # Inicializar figura para os subplots
 fig, axs = plt.subplots(3, 2, figsize=(13, 13))  # 3 linhas, 2 colunas
 
+
+# Plotar histogramas das similaridades
+for ax, (metric, values) in zip(axs[:, 0], all_similarities.items()):
+    ax.hist(values, bins=50, color='skyblue', edgecolor='black')
+    ax.set_title(f'Similarity - {metric.capitalize()}', fontsize=10)
+    #ax.set_xlabel('Similaridade')
+    ax.set_ylabel('Frequency')
+
+# Plotar histogramas das distâncias
+for ax, (metric, values) in zip(axs[:, 1], all_distances.items()):
+    ax.hist(values, bins=50, color='salmon', edgecolor='black')
+    ax.set_title(f'Distance - {metric.capitalize()}', fontsize=10)
+    #ax.set_xlabel('Distância')
+    ax.set_ylabel('Frequency')
+
