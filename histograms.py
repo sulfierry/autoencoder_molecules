@@ -32,3 +32,23 @@ def calculate_similarity(fingerprint, fingerprints, similarity_metric):
         similarities.append(similarity)
     return similarities
 
+def calculate_distance(fingerprint, fingerprints, distance_metric):
+    distances = []
+    for fp in fingerprints:
+        if distance_metric == 'hamming':
+            dist = sum(1 for a, b in zip(fingerprint, fp) if a != b)
+        elif distance_metric == 'manhattan':
+            arr1, arr2 = np.zeros((1,)), np.zeros((1,))
+            DataStructs.ConvertToNumpyArray(fingerprint, arr1)
+            DataStructs.ConvertToNumpyArray(fp, arr2)
+            dist = np.sum(np.abs(arr1 - arr2))
+        distances.append(dist)
+    return distances
+
+def process_in_batches(data, batch_size, process_function, metric):
+    results = []
+    for i in range(0, len(data), batch_size):
+        batch = data[i:i+batch_size]
+        results.extend(process_batch(batch, lambda fp, fps: process_function(fp, fps, metric)))
+    return results
+
