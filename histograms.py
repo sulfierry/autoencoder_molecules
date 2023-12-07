@@ -52,3 +52,26 @@ def process_in_batches(data, batch_size, process_function, metric):
         results.extend(process_batch(batch, lambda fp, fps: process_function(fp, fps, metric)))
     return results
 
+
+# Carregar o arquivo .tsv
+file_path = './chembl_cluster_hits.tsv'  # Substitua pelo caminho correto do arquivo
+data = pd.read_csv(file_path, sep='\t')
+
+# Preparar fingerprints
+data['fingerprints'] = data['canonical_smiles'].apply(smiles_to_fingerprint)
+valid_fps = data['fingerprints'].dropna().tolist()
+
+# Definir o tamanho do lote
+batch_size = 1024  # Ajuste conforme a capacidade da sua máquina
+
+# Calcular todas as similaridades e distâncias por bateladas
+similarity_metrics = ['tanimoto', 'dice', 'cosine']
+distance_metrics = ['hamming', 'manhattan']
+all_similarities = {metric: process_in_batches(valid_fps, batch_size, calculate_similarity, metric) for metric in similarity_metrics}
+all_distances = {metric: process_in_batches(valid_fps, batch_size, calculate_distance, metric) for metric in distance_metrics}
+
+# [Restante do código para plotar os histogramas]
+
+# Inicializar figura para os subplots
+fig, axs = plt.subplots(3, 2, figsize=(13, 13))  # 3 linhas, 2 colunas
+
