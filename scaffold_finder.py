@@ -3,6 +3,9 @@ from rdkit import Chem
 from rdkit.Chem import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Scaffolds import MurckoScaffold
+import concurrent.futures
+import os
+from tqdm import tqdm
 
 # Função para encontrar o scaffold de um SMILES
 def get_scaffold(smiles):
@@ -18,16 +21,34 @@ def calculate_similarity(smiles1, smiles2):
     fp2 = AllChem.GetMorganFingerprint(mol2, 2)
     return DataStructs.TanimotoSimilarity(fp1, fp2)
 
+# Função para processar cada linha do DataFrame
+def process_row(row):
+    scaffold = get_scaffold(row['canonical_smiles'])
+    similarity = calculate_similarity(row['canonical_smiles'], target_smile)
+    return scaffold, similarity
+
 # Carregar o arquivo
-file_path = 'CAMINHO_PARA_SEU_ARQUIVO.tsv'
+file_path = './nr_kinase_drug_info_kd_ki_ic50_10uM_manually_validated.tsv'
 data = pd.read_csv(file_path, sep='\t')
 
 # Smile alvo
-target_smile = "NC(=O)CC(C(=O)O)N"
+target_smile = "C(C(=O)O)N"
 
-# Adicionando as novas colunas
-data['scaffold_smile'] = data['canonical_smiles'].apply(get_scaffold)
-data['similarity_smiles'] = data['canonical_smiles'].apply(lambda x: calculate_similarity(x, target_smile))
+# Processamento paralelo
+cpu_count = os.cpu_count()
+with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count) as executor:
+    results = list(tqdm(executor.map(process_row, data.to_dict('records')), total=len(data)))
+
+# Adicionando os resultados ao DataFrame e reorganizando as colunas
+data[['scaffold_smile', 'similarity_smiles']] = pd.DataFrame(results, index=data.index)
+data = data[['molregno', 'target_kinase', 'canonical_smiles', 'scaffold_smile', 'similarity_smiles', 
+             'standard_value', 'standard_type', 'pchembl_value', 'compound_name']]
+
+# Filtrando por similaridade (exemplo: >= 10%)
+data = data[data['similarity_smiles'] >= 0.10]
+
+# Removendo a coluna 'kinase_total'
+data.drop(columns=['kinase_total'], inplace=True, errors='ignore')
 
 # Salvando o resultado em um novo arquivo .tsv
 output_file_path = 'output_scaffolds_similarity.tsv'
