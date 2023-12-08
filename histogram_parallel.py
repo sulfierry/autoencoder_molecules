@@ -75,3 +75,43 @@ class Histogram:
         plt.tight_layout()
         plt.savefig('histogram_similarity_distance.png')
         plt.show()
+
+
+
+def process_batch_parallel(batch, process_function, all_fps, metric):
+    """
+    Função auxiliar para processar um lote de fingerprints em paralelo.
+    """
+    results = []
+    for fp in batch:
+        results.extend(process_function(fp, all_fps, metric))
+    return results
+
+class SmilesProcess:
+    @staticmethod
+    def smiles_to_fingerprint(smiles, radius=2):
+        """
+        Converte uma string SMILES em um Morgan fingerprint.
+        """
+        mol = Chem.MolFromSmiles(smiles)
+        return AllChem.GetMorganFingerprintAsBitVect(mol, radius) if mol else None
+
+    @staticmethod
+    def calculate_similarity(fingerprint, fingerprints, similarity_metric):
+        """
+        Calcula a similaridade entre um fingerprint e uma lista de fingerprints.
+        """
+        similarities = []
+        for fp in fingerprints:
+            if similarity_metric == 'cosine':
+                arr1, arr2 = np.zeros((1,)), np.zeros((1,))
+                DataStructs.ConvertToNumpyArray(fingerprint, arr1)
+                DataStructs.ConvertToNumpyArray(fp, arr2)
+                similarity = 1 - cosine(arr1, arr2)
+            elif similarity_metric == 'tanimoto':
+                similarity = DataStructs.TanimotoSimilarity(fingerprint, fp)
+            elif similarity_metric == 'dice':
+                similarity = DataStructs.DiceSimilarity(fingerprint, fp)
+            similarities.append(similarity)
+        return similarities
+
