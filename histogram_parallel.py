@@ -134,3 +134,29 @@ class SmilesProcess:
 
 
 
+
+
+
+def main():
+    file_path = './chembl_cluster_hits.tsv'  # Caminho do arquivo
+    data = pd.read_csv(file_path, sep='\t')
+
+    # Preparar fingerprints
+    data['fingerprints'] = data['canonical_smiles'].apply(SmilesProcess.smiles_to_fingerprint)
+    valid_fps = data['fingerprints'].dropna().tolist()
+
+    # Definir o tamanho do lote
+    batch_size = 256  # Ajuste conforme a capacidade da sua máquina
+
+    histogram = Histogram(valid_fps, batch_size)
+    similarity_metrics = ['tanimoto', 'dice', 'cosine']
+    distance_metrics = ['hamming', 'manhattan']
+
+    all_similarities = {metric: histogram.process_in_batches_parallel(SmilesProcess.calculate_similarity, metric) for metric in similarity_metrics}
+    all_distances = {metric: histogram.process_in_batches_parallel(SmilesProcess.calculate_distance, metric) for metric in distance_metrics}
+
+    histogram.plot_histograms(all_similarities, all_distances, data, plt)
+
+if __name__ == "__main__":
+    main()
+
