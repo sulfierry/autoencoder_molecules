@@ -17,3 +17,7 @@ def calculate_similarity(smiles1, smiles2):
     fp1 = AllChem.GetMorganFingerprint(mol1, 2)
     fp2 = AllChem.GetMorganFingerprint(mol2, 2)
     return DataStructs.TanimotoSimilarity(fp1, fp2)
+
+# Carregar o arquivo
+file_path = 'CAMINHO_PARA_SEU_ARQUIVO.tsv'
+data = pd.read_csv(file_path, sep='\t')
