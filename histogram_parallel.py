@@ -115,3 +115,22 @@ class SmilesProcess:
             similarities.append(similarity)
         return similarities
 
+    @staticmethod
+    def calculate_distance(fingerprint, fingerprints, distance_metric):
+        """
+        Calcula a distância entre um fingerprint e uma lista de fingerprints.
+        """
+        distances = []
+        for fp in fingerprints:
+            if distance_metric == 'hamming':
+                dist = sum(1 for a, b in zip(fingerprint, fp) if a != b)
+            elif distance_metric == 'manhattan':
+                arr1, arr2 = np.zeros((1,)), np.zeros((1,))
+                DataStructs.ConvertToNumpyArray(fingerprint, arr1)
+                DataStructs.ConvertToNumpyArray(fp, arr2)
+                dist = np.sum(np.abs(arr1 - arr2))
+            distances.append(dist)
+        return distances
+
+
+
