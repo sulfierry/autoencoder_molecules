@@ -32,7 +32,7 @@ file_path = './nr_kinase_drug_info_kd_ki_ic50_10uM_manually_validated.tsv'
 data = pd.read_csv(file_path, sep='\t')
 
 # Smile alvo
-target_smile = "C(C(=O)O)N"
+target_smile = "NCCCN"
 
 # Processamento paralelo
 cpu_count = os.cpu_count()
