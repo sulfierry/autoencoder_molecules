@@ -28,3 +28,17 @@ def smiles_to_sdf(smiles, molregno):
         # Criar um escritor SDF e escrever a molécula
         with Chem.SDWriter(file_name) as writer:
             writer.write(mol)
+
+# Paralelizar a conversão de SMILES para .sdf
+with ThreadPoolExecutor() as executor:
+    for _, row in data.iterrows():
+        executor.submit(smiles_to_sdf, row['canonical_smiles'], row['molregno'])
+
+# Combinar todos os arquivos .sdf em um único arquivo
+combined_file_path = os.path.join(output_folder, 'combined.sdf')
+with Chem.SDWriter(combined_file_path) as writer:
+    for sdf_file in os.listdir(output_folder):
+        if sdf_file.endswith('.sdf') and sdf_file != 'combined.sdf':
+            for mol in Chem.SDMolSupplier(os.path.join(output_folder, sdf_file)):
+                if mol is not None:
+                    writer.write(mol)
