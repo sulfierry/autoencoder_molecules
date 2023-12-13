@@ -75,3 +75,32 @@ class Histogram:
             batch = data[i:i+self.batch_size]
             results.extend(self.process_batch(batch, lambda fp, fps: process_function(fp, fps, metric)))
         return results
+
+    def create_histograms(self):
+        data = pd.read_csv(self.file_path, sep='\t')
+        data['fingerprints'] = data['canonical_smiles'].apply(self.smiles_to_fingerprint)
+        valid_fps = data['fingerprints'].dropna().tolist()
+
+        similarity_metrics = ['tanimoto', 'dice', 'cosine']
+        distance_metrics = ['hamming', 'manhattan']
+        all_similarities = {metric: self.process_in_batches(valid_fps, self.calculate_similarity, metric) for metric in similarity_metrics}
+        all_distances = {metric: self.process_in_batches(valid_fps, self.calculate_distance, metric) for metric in distance_metrics}
+
+        fig, axs = plt.subplots(3, 2, figsize=(13, 13))
+        for ax, (metric, values) in zip(axs[:, 0], all_similarities.items()):
+            ax.hist(values, bins=50, color='skyblue', edgecolor='black')
+            ax.set_title(f'Similarity - {metric.capitalize()}', fontsize=10)
+            ax.set_ylabel('Frequency')
+
+        for ax, (metric, values) in zip(axs[:, 1], all_distances.items()):
+            ax.hist(values, bins=50, color='salmon', edgecolor='black')
+            ax.set_title(f'Distance - {metric.capitalize()}', fontsize=10)
+            ax.set_ylabel('Frequency')
+
+        axs[2, 1].hist(data['pchembl_value'].dropna(), bins=20, color='green', edgecolor='black')
+        axs[2, 1].set_title('ChEMBL value', fontsize=10)
+        axs[2, 1].set_ylabel('Frequency')
+
+        plt.tight_layout()
+        plt.savefig('histogram_similarity_distance_CLASS.png')
+        plt.show()
