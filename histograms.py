@@ -54,3 +54,24 @@ class Histogram:
                 similarity = DataStructs.DiceSimilarity(fingerprint, fp)
             similarities.append(similarity)
         return similarities
+
+    @staticmethod
+    def calculate_distance(fingerprint, fingerprints, distance_metric):
+        distances = []
+        for fp in fingerprints:
+            if distance_metric == 'hamming':
+                dist = sum(1 for a, b in zip(fingerprint, fp) if a != b)
+            elif distance_metric == 'manhattan':
+                arr1, arr2 = np.zeros((1,)), np.zeros((1,))
+                DataStructs.ConvertToNumpyArray(fingerprint, arr1)
+                DataStructs.ConvertToNumpyArray(fp, arr2)
+                dist = np.sum(np.abs(arr1 - arr2))
+            distances.append(dist)
+        return distances
+
+    def process_in_batches(self, data, process_function, metric):
+        results = []
+        for i in range(0, len(data), self.batch_size):
+            batch = data[i:i+self.batch_size]
+            results.extend(self.process_batch(batch, lambda fp, fps: process_function(fp, fps, metric)))
+        return results
