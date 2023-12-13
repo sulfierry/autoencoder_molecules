@@ -104,3 +104,7 @@ class Histogram:
         plt.tight_layout()
         plt.savefig('histogram_similarity_distance_CLASS.png')
         plt.show()
+
+if __name__ == "__main__":
+    histogram = Histogram('./chembl_cluster_hits.tsv')
+    histogram.create_histograms()
