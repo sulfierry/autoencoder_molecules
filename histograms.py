@@ -26,3 +26,31 @@ class Histogram:
     def __init__(self, file_path, batch_size=1024):
         self.file_path = file_path
         self.batch_size = batch_size
+
+    @staticmethod
+    def smiles_to_fingerprint(smiles, radius=2):
+        mol = Chem.MolFromSmiles(smiles)
+        return AllChem.GetMorganFingerprintAsBitVect(mol, radius) if mol else None
+
+    @staticmethod
+    def process_batch(fingerprints, calculate_function):
+        results = []
+        for fp in fingerprints:
+            results.extend(calculate_function(fp, fingerprints))
+        return results
+
+    @staticmethod
+    def calculate_similarity(fingerprint, fingerprints, similarity_metric):
+        similarities = []
+        for fp in fingerprints:
+            if similarity_metric == 'cosine':
+                arr1, arr2 = np.zeros((1,)), np.zeros((1,))
+                DataStructs.ConvertToNumpyArray(fingerprint, arr1)
+                DataStructs.ConvertToNumpyArray(fp, arr2)
+                similarity = 1 - cosine(arr1, arr2)
+            elif similarity_metric == 'tanimoto':
+                similarity = DataStructs.TanimotoSimilarity(fingerprint, fp)
+            elif similarity_metric == 'dice':
+                similarity = DataStructs.DiceSimilarity(fingerprint, fp)
+            similarities.append(similarity)
+        return similarities
