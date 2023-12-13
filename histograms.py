@@ -1,10 +1,10 @@
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from rdkit import Chem
-from rdkit.Chem import AllChem, DataStructs
-from scipy.spatial.distance import cosine
+import pandas as pd
 import seaborn as sns
+from rdkit import Chem
+import matplotlib.pyplot as plt
+from scipy.spatial.distance import cosine
+from rdkit.Chem import AllChem, DataStructs
 
 """
 	O presente algoritmo compara todos os fingerprints moleculares uns contra os outros, 
@@ -20,7 +20,6 @@ import seaborn as sns
 	número muito grande para grandes conjuntos de dados. É por isso que o algoritmo processa os 
 	dados em lotes, para gerenciar o uso de memória e recursos de processamento.
 """
-
 
 class Histogram:
     def __init__(self, file_path, batch_size=1024):
