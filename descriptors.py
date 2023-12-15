@@ -80,3 +80,25 @@ class MolecularDescriptors:
         plt.tight_layout()
         plt.show()
 
+def main():
+
+    # Caminhos dos arquivos
+    data_file_path = '../1_database/nr_kinase_drug_info_all_manually_validated_IC50_Ki_kd_10uM.tsv'
+    additional_data_file_path = '../1_database/pkidb_2023-06-30.tsv'
+    output_file_path = './chembl_nr_pkidb_descriptors.tsv'
+    histogram_output_path = './nr_chembl_pkidb_descriptors.png'
+
+    # Criar instância da classe
+    molecular_descriptors = MolecularDescriptors(data_file_path)
+
+    # Calcular descritores
+    molecular_descriptors.compute_descriptors()
+
+    # Salvar descritores calculados
+    molecular_descriptors.save_descriptors(output_file_path)
+
+    # Plotar histogramas normalizados e sobrepostos
+    molecular_descriptors.plot_histograms(additional_data_file_path, histogram_output_path)
+
+if __name__ == '__main__':
+    main()
