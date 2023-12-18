@@ -213,7 +213,9 @@ def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold,
 
 
 def main():
-
+    
+    start_time  = time.time()
+    print('Iniciando...\n')
     smiles_file_path = '../../../1_database/nr_kinase_drug_info_all_manually_validated_IC50_Ki_kd_10uM.tsv'
     output_file_path = './clustered_smiles.tsv'
     state_file_path  = './molecule_clusterer_state.pkl'
@@ -223,6 +225,10 @@ def main():
     cluster_size_threshold = 1 # numero minimo de moleculas por cluster
     
     run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold, cluster_size_threshold, smile_column)
+    
+    end_time = time.time()
+    print("Fim.\n")
+    print(f"Tempo total de execução: {end_time - start_time:.2f} segundos")
     
 if __name__ == "__main__":
     main()
