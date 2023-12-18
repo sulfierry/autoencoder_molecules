@@ -1,4 +1,12 @@
+"""
+O presente algoritimo agurpa moléculas com base em suas similaridades estruturais. 
+Utilizando a representação de SMILES (Simplified Molecular Input Line Entry System) 
+para moléculas, o algoritmo converte estas estruturas em fingerprints moleculares e 
+realiza a clusterização baseada em um limiar de similaridade predefinido.
+"""
 import os
+import sys
+import time
 import pickle
 import numpy as np
 import pandas as pd
@@ -11,6 +19,7 @@ from rdkit.Chem import Descriptors
 from rdkit.Chem import AllChem, DataStructs
 
 class MoleculeClusterer:
+    
     def __init__(self, smiles_file_path):
         self.smiles_file_path = smiles_file_path
         self.data = None
@@ -77,7 +86,7 @@ class MoleculeClusterer:
     def calculate_tsne(self):
         # Convertendo a lista de fingerprints para um array NumPy com uma barra de progresso do tqdm
         fingerprint_array = np.array([fp for fp in tqdm(self.fingerprints, desc='Processing Fingerprints') if fp is not None])
-        tsne = TSNE(n_components=2, random_state=42)
+        tsne = TSNE(n_components=2, random_state=42, learning_rate=200.0, init='pca')
         tsne_results = tsne.fit_transform(fingerprint_array)
         return tsne_results
 
@@ -86,14 +95,14 @@ class MoleculeClusterer:
         plt.figure(figsize=(12, 8))
 
         # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
-        filtered_data = self.data[self.data['ClusterID'].map(self.data['ClusterID'].value_counts()) >= threshold]
+        filtered_data = self.data[self.data['cluster_id'].map(self.data['cluster_id'].value_counts()) >= threshold]
 
         # Filtrar os resultados t-SNE para incluir apenas os dados filtrados
         filtered_indices = filtered_data.index
         filtered_tsne_results = tsne_results[filtered_indices]
 
         # Obter os tamanhos dos clusters para os dados filtrados
-        cluster_sizes = filtered_data['ClusterID'].map(filtered_data['ClusterID'].value_counts())
+        cluster_sizes = filtered_data['cluster_id'].map(filtered_data['cluster_id'].value_counts())
 
         # Mapear os tamanhos dos clusters para um intervalo de cores
         cmap = plt.cm.viridis
@@ -108,13 +117,13 @@ class MoleculeClusterer:
         plt.title('Molecular similarity in 2D space')
         plt.xlabel('t-SNE feature 1')
         plt.ylabel('t-SNE feature 2')
-        plt.savefig('tsne_similarity_0.8.png')
+        plt.savefig('tsne_similarity.png')
         plt.show()
         
         
     def plot_cluster_size_distribution(self, threshold):
         # Filtrar os dados para incluir apenas clusters com tamanho >= threshold
-        cluster_sizes = self.data['ClusterID'].value_counts()
+        cluster_sizes = self.data['cluster_id'].value_counts()
         filtered_cluster_sizes = cluster_sizes[cluster_sizes >= threshold]
 
         plt.figure(figsize=(10, 6))
@@ -137,24 +146,18 @@ class MoleculeClusterer:
         self.data['molecular_weight'] = self.data[smile_column].apply(lambda x: Descriptors.MolWt(Chem.MolFromSmiles(x)) if x else None)
 
         # Colunas a serem incluídas nos arquivos de saída
-        output_columns = ['molregno', 'target_kinase', 'canonical_smiles', 'standard_value', 'standard_type', 'pchembl_value',
+        output_columns = ['chembl_id', 'molregno', 'target_kinase', 'canonical_smiles', 'standard_value', 'standard_type', 'pchembl_value',
                         'compound_name', 'molecular_weight', 'cluster_id']
-        
-        # Certifique-se de renomear as colunas de acordo com os nomes originais no DataFrame
-        rename_columns = {
-            'kinase_alvo': 'target_kinase',  
-            'nome_medicamento': 'compound_name',  
-            'ClusterID': 'cluster_id'  
-        }
+   
 
         # Lista para armazenar os hits de cada cluster
         cluster_hits = []
 
-        for cluster_id in set(self.data['ClusterID']):
-            cluster_data = self.data[self.data['ClusterID'] == cluster_id]
+        for cluster_id in set(self.data['cluster_id']):
+            cluster_data = self.data[self.data['cluster_id'] == cluster_id]
 
             # Renomear as colunas conforme necessário
-            cluster_data = cluster_data.rename(columns=rename_columns)
+            #cluster_data = cluster_data.rename(columns=rename_columns)
 
             # Ordenar os dados do cluster por peso molecular
             cluster_data_sorted = cluster_data.sort_values('molecular_weight')
@@ -197,26 +200,27 @@ def run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold,
         for cluster_id, cluster in enumerate(clusters):
             for idx in cluster:
                 cluster_ids[idx] = cluster_id
-        clusterer.data['ClusterID'] = cluster_ids
+        clusterer.data['cluster_id'] = cluster_ids
 
         clusterer.save_clusters_as_tsv(cluster_size_threshold, smile_column, './chembl_cluster_hits.tsv')
         clusterer.plot_tsne(tsne_results, cluster_size_threshold)
         clusterer.plot_cluster_size_distribution(cluster_size_threshold)
 
-        clusterer.save_clustered_data(output_file_path)
+        #clusterer.save_clustered_data(output_file_path)
         clusterer.save_state(state_file_path)
     else:
         print("Nenhum fingerprint válido foi encontrado.")
 
 
 def main():
-    smiles_file_path = './nr_kinase_drug_info_kd_ki_manually_validated.tsv'
+
+    smiles_file_path = '../../../1_database/nr_kinase_drug_info_all_manually_validated_IC50_Ki_kd_10uM.tsv'
     output_file_path = './clustered_smiles.tsv'
-    state_file_path = './molecule_clusterer_state.pkl'
+    state_file_path  = './molecule_clusterer_state.pkl'
 
     smile_column = 'canonical_smiles'
     tanimoto_threshold = 0.8
-    cluster_size_threshold = 3
+    cluster_size_threshold = 1 # numero minimo de moleculas por cluster
     
     run(smiles_file_path, output_file_path, state_file_path, tanimoto_threshold, cluster_size_threshold, smile_column)
     
